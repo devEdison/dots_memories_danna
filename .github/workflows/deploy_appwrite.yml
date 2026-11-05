@@ -1,0 +1,37 @@
+name: Deploy to Appwrite Sites
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --release --base-href "/"
+
+      - name: Install Appwrite CLI
+        run: npm install -g appwrite-cli
+
+      - name: Configure Appwrite CLI & Deploy
+        if: env.APPWRITE_API_KEY != ''
+        env:
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: |
+          appwrite client --endpoint "https://fra.cloud.appwrite.io/v1" --project-id "danna15-memories" --key "$APPWRITE_API_KEY"
+          appwrite sites create-deployment --site-id "dots-memories-danna" --code "build/web" --activate
