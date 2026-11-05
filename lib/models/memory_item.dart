@@ -1,0 +1,87 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+
+class MemoryItem {
+  final String id;
+  final String fileName;
+  final Uint8List? bytes;
+  final String? remoteUrl;
+  final String? base64Data;
+  final DateTime timestamp;
+  final String? caption;
+  final int fileSize;
+
+  MemoryItem({
+    required this.id,
+    required this.fileName,
+    this.bytes,
+    this.remoteUrl,
+    this.base64Data,
+    required this.timestamp,
+    this.caption,
+    this.fileSize = 0,
+  });
+
+  /// Retorna un ImageProvider adecuado según los datos disponibles
+  ImageProvider get imageProvider {
+    if (bytes != null && bytes!.isNotEmpty) {
+      return MemoryImage(bytes!);
+    }
+    if (base64Data != null && base64Data!.isNotEmpty) {
+      try {
+        final decoded = base64Decode(base64Data!);
+        return MemoryImage(decoded);
+      } catch (_) {}
+    }
+    if (remoteUrl != null && remoteUrl!.isNotEmpty) {
+      return NetworkImage(remoteUrl!);
+    }
+    // Fallback: pixel transparente
+    return MemoryImage(_transparentPixel);
+  }
+
+  static final Uint8List _transparentPixel = Uint8List.fromList([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+    0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+    0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+    0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+  ]);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'fileName': fileName,
+      'remoteUrl': remoteUrl,
+      'base64Data': base64Data ?? (bytes != null ? base64Encode(bytes!) : null),
+      'timestamp': timestamp.toIso8601String(),
+      'caption': caption,
+      'fileSize': fileSize,
+    };
+  }
+
+  factory MemoryItem.fromJson(Map<String, dynamic> json) {
+    Uint8List? rawBytes;
+    final b64 = json['base64Data'] as String?;
+    if (b64 != null && b64.isNotEmpty) {
+      try {
+        rawBytes = base64Decode(b64);
+      } catch (_) {}
+    }
+
+    return MemoryItem(
+      id: json['id'] as String? ?? UniqueKey().toString(),
+      fileName: json['fileName'] as String? ?? 'recuerdo.jpg',
+      remoteUrl: json['remoteUrl'] as String?,
+      base64Data: b64,
+      bytes: rawBytes,
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      caption: json['caption'] as String?,
+      fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
