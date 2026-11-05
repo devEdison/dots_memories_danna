@@ -50,7 +50,13 @@ class StorageService {
     if (configStr != null && configStr.isNotEmpty) {
       try {
         final configJson = jsonDecode(configStr) as Map<String, dynamic>;
-        configNotifier.value = AppConfig.fromJson(configJson);
+        final loadedConfig = AppConfig.fromJson(configJson);
+        if (loadedConfig.googleScriptUrl.isEmpty) {
+          loadedConfig.googleScriptUrl =
+              'https://script.google.com/macros/s/AKfycbzeQ_sLwh-FkZh4YvmTh1YGRPa9GlpcwwOJEf9UiiWXTf3A-rpfJaXiXw1DBM88pDnN/exec';
+          loadedConfig.useGoogleBackend = true;
+        }
+        configNotifier.value = loadedConfig;
       } catch (e) {
         debugPrint('Error decodificando configuración: $e');
       }
@@ -200,7 +206,7 @@ class StorageService {
         final response = await http.post(
           Uri.parse(currentConfig.googleScriptUrl.trim()),
           body: payload,
-          headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'text/plain'},
         ).timeout(const Duration(seconds: 45));
 
         uploadProgressNotifier.value = 0.90;
