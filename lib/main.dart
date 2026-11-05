@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'models/memory_folder.dart';
 import 'models/memory_item.dart';
+import 'services/download_helper.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/access_key_dialog.dart';
@@ -197,6 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onQrPressed: _openQrDialog,
                       onSettingsPressed: _openSettingsDialog,
                       onUnlockPressed: _openUnlockDialog,
+                      onGooglePhotosPressed: () => DownloadHelper.openUrl(widget.storageService.config.googlePhotosAlbumUrl),
                     ),
                   ),
 
@@ -520,6 +522,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                TextButton.icon(
+                                  onPressed: () => DownloadHelper.openUrl(
+                                    widget.storageService.config.googlePhotosAlbumUrl,
+                                  ),
+                                  icon: const Icon(Icons.photo_library_rounded, size: 14),
+                                  label: const Text('Álbum Google Fotos'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.sageDark,
+                                    textStyle: GoogleFonts.poppins(fontSize: 11),
+                                  ),
+                                ),
+                                const Text('•', style: TextStyle(color: AppTheme.mutedText)),
                                 TextButton.icon(
                                   onPressed: _openSettingsDialog,
                                   icon: const Icon(Icons.tune_rounded, size: 14),

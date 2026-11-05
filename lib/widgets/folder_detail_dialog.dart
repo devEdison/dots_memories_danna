@@ -244,6 +244,53 @@ class FolderDetailDialog extends StatelessWidget {
                       ),
                     ],
 
+                    const SizedBox(height: 12),
+
+                    // Botón directo al Álbum oficial de Google Fotos de Danna
+                    InkWell(
+                      onTap: () => DownloadHelper.openUrl(
+                        'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.softPinkBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.pinkBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.photo_library_rounded, color: AppTheme.dustyPink, size: 22),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Álbum Oficial en Google Fotos de Danna',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.sageDeep,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Abrir álbum en Google Fotos para ver la colección completa',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      color: AppTheme.mutedText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.open_in_new_rounded, color: AppTheme.dustyPink, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // TÍTULO DE LA GALERÍA

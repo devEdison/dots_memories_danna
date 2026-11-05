@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/download_helper.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
@@ -145,7 +146,14 @@ class _UploadModalState extends State<UploadModal> {
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Abrir Google Fotos',
+              textColor: const Color(0xFFFFD1DC),
+              onPressed: () => DownloadHelper.openUrl(
+                widget.storageService.config.googlePhotosAlbumUrl,
+              ),
+            ),
           ),
         );
       } else {

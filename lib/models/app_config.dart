@@ -6,6 +6,8 @@ class AppConfig {
   String quinceaneraName;
   String accessKey;
   bool requireAccessKey;
+  String googlePhotosAlbumUrl;
+  String googlePhotosAlbumId;
 
   AppConfig({
     this.googleScriptUrl = '',
@@ -15,6 +17,8 @@ class AppConfig {
     this.quinceaneraName = 'Danna',
     this.accessKey = 'DANNA15',
     this.requireAccessKey = true,
+    this.googlePhotosAlbumUrl = 'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+    this.googlePhotosAlbumId = 'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +30,8 @@ class AppConfig {
       'quinceaneraName': quinceaneraName,
       'accessKey': accessKey,
       'requireAccessKey': requireAccessKey,
+      'googlePhotosAlbumUrl': googlePhotosAlbumUrl,
+      'googlePhotosAlbumId': googlePhotosAlbumId,
     };
   }
 
@@ -38,6 +44,10 @@ class AppConfig {
       quinceaneraName: json['quinceaneraName'] as String? ?? 'Danna',
       accessKey: json['accessKey'] as String? ?? 'DANNA15',
       requireAccessKey: json['requireAccessKey'] as bool? ?? true,
+      googlePhotosAlbumUrl: json['googlePhotosAlbumUrl'] as String? ??
+          'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+      googlePhotosAlbumId: json['googlePhotosAlbumId'] as String? ??
+          'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
     );
   }
 }

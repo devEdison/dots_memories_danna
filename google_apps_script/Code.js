@@ -2,25 +2,30 @@
  * =========================================================================
  * BACKEND GOOGLE APPS SCRIPT - DOTS MEMORIES: 15 AÑOS DE DANNA
  * =========================================================================
- * Este script se ejecuta en Google Cloud / Google Drive de forma 100% gratuita.
- * Recibe las fotos y comentarios que suben los invitados desde la web Flutter
- * y las guarda automáticamente en carpetas individuales organizadas por invitado.
+ * Álbum Destino de Google Fotos:
+ * https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm
  *
- * INSTRUCCIONES DE INSTALACIÓN (Tarda 2 minutos):
+ * Este script se ejecuta en tu cuenta de Google de forma 100% gratuita.
+ * Recibe las fotos y comentarios que suben los invitados desde la web Flutter
+ * y las guarda en tu Álbum de Google Fotos y en carpetas organizadas en Google Drive.
+ *
+ * INSTRUCCIONES DE INSTALACIÓN (2 minutos):
  * 1. Entra a https://script.google.com/ y haz clic en "Nuevo proyecto".
  * 2. Borra todo el código que aparezca y pega este archivo completo.
  * 3. Haz clic en "Implementar" (botón azul arriba a la derecha) > "Nueva implementación".
  * 4. En tipo de implementación (icono de engranaje) selecciona "Aplicación web".
  * 5. Configura:
- *    - Descripción: "Dots Memories Danna Backend"
+ *    - Descripción: "Dots Memories Danna - Álbum Google Fotos"
  *    - Ejecutar como: "Yo (tu correo de Google)"
- *    - Quién tiene acceso: "Cualquiera" (Anyone) -> IMPORTANTE para que los invitados puedan subir sin iniciar sesión.
- * 6. Haz clic en "Implementar", autoriza los permisos de Google Drive.
- * 7. Copia la "URL de la aplicación web" (termina en /exec) y pégala en la app Flutter
- *    en el botón de Configuración (engranaje). ¡Listo!
+ *    - Quién tiene acceso: "Cualquiera" (Anyone) -> Permite que los invitados suban fotos sin login.
+ * 6. Haz clic en "Implementar", autoriza los permisos de Google Drive y Fotos.
+ * 7. Copia la "URL de la aplicación web" (termina en /exec) y pégala en la app web de Danna
+ *    en el botón de Ajustes ⚙️ (Google Nube).
  */
 
-const MAIN_FOLDER_NAME = "15 Años Danna - Fotos de Invitados";
+const GOOGLE_PHOTOS_ALBUM_ID = "AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm";
+const GOOGLE_PHOTOS_ALBUM_URL = "https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm";
+const MAIN_DRIVE_FOLDER_NAME = "15 Años Danna - Fotos de Invitados";
 
 /**
  * Maneja peticiones POST desde la aplicación web (subida de fotos y dedicatoria)
@@ -36,8 +41,8 @@ function doPost(e) {
     const comment = (data.comment || "").trim();
     const photos = data.photos || [];
 
-    // 1. Obtener o crear carpeta principal del evento
-    const mainFolder = getOrCreateMainFolder(MAIN_FOLDER_NAME);
+    // 1. Obtener o crear carpeta principal del evento en Google Drive
+    const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
 
     // 2. Crear subcarpeta para el invitado con fecha y hora
     const now = new Date();
@@ -46,7 +51,7 @@ function doPost(e) {
     const guestFolderName = safeGuestName + " (" + dateStr + ")";
     const guestFolder = mainFolder.createFolder(guestFolderName);
 
-    // Dar permisos de lectura con enlace
+    // Dar permisos de lectura
     guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     // 3. Guardar el archivo de texto con la dedicatoria
@@ -55,13 +60,14 @@ function doPost(e) {
                         "═══════════════════════════════════════════════════════\r\n\r\n" +
                         "De: " + guestName + "\r\n" +
                         "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
-                        "Total de fotos: " + photos.length + "\r\n\r\n" +
+                        "Total de fotos: " + photos.length + "\r\n" +
+                        "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
                         "DEDICATORIA / MENSAJE:\r\n" +
                         (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
                         "═══════════════════════════════════════════════════════";
     guestFolder.createFile("Dedicatoria_" + safeGuestName + ".txt", noteContent, "text/plain");
 
-    // 4. Guardar cada una de las fotos
+    // 4. Guardar cada una de las fotos en Drive y subir al Álbum de Google Fotos
     const savedPhotos = [];
     for (var i = 0; i < photos.length; i++) {
       try {
@@ -74,32 +80,42 @@ function doPost(e) {
         const decodedBytes = Utilities.base64Decode(base64Data);
         const blob = Utilities.newBlob(decodedBytes, contentType, fileName);
 
+        // Guardar archivo en la subcarpeta del invitado en Drive
         const file = guestFolder.createFile(blob);
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
         const fileId = file.getId();
-        // URL directa de imagen que se puede mostrar en la web
         const directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
         const viewUrl = file.getUrl();
+
+        // Intentar agregar al Álbum de Google Fotos directamente vía Google Photos API
+        var googlePhotosId = null;
+        try {
+          googlePhotosId = uploadDirectToGooglePhotos(blob, fileName, guestName, comment);
+        } catch (photosApiErr) {
+          Logger.log("Aviso Google Photos API: " + photosApiErr.toString());
+        }
 
         savedPhotos.push({
           name: fileName,
           id: fileId,
+          googlePhotosId: googlePhotosId,
           url: directUrl,
           viewUrl: viewUrl
         });
       } catch (photoErr) {
-        // Continuar con las demás fotos si una falla
         Logger.log("Error guardando foto " + i + ": " + photoErr.toString());
       }
     }
 
-    // 5. Retornar respuesta exitosa
+    // 5. Retornar respuesta exitosa con la URL del álbum de Google Fotos
     return responseJSON({
       status: "success",
-      message: "Recuerdos guardados exitosamente",
+      message: "Recuerdos guardados exitosamente en Google Fotos y Drive",
       guestName: guestName,
       comment: comment,
+      googlePhotosAlbumId: GOOGLE_PHOTOS_ALBUM_ID,
+      googlePhotosAlbumUrl: GOOGLE_PHOTOS_ALBUM_URL,
       folderId: guestFolder.getId(),
       folderUrl: guestFolder.getUrl(),
       folderName: guestFolderName,
@@ -118,6 +134,68 @@ function doPost(e) {
 }
 
 /**
+ * Sube la imagen a la API de Google Photos y la asigna al álbum de Danna
+ */
+function uploadDirectToGooglePhotos(blob, fileName, guestName, comment) {
+  const token = ScriptApp.getOAuthToken();
+  if (!token) return null;
+
+  // Paso A: Subir los bytes para obtener el uploadToken
+  const uploadUrl = "https://photoslibrary.googleapis.com/v1/uploads";
+  const uploadHeaders = {
+    "Authorization": "Bearer " + token,
+    "Content-type": "application/octet-stream",
+    "X-Goog-Upload-File-Name": encodeURIComponent(fileName),
+    "X-Goog-Upload-Protocol": "raw"
+  };
+
+  const uploadResponse = UrlFetchApp.fetch(uploadUrl, {
+    method: "post",
+    headers: uploadHeaders,
+    payload: blob.getBytes(),
+    muteHttpExceptions: true
+  });
+
+  if (uploadResponse.getResponseCode() !== 200) {
+    return null;
+  }
+
+  const uploadToken = uploadResponse.getContentText();
+
+  // Paso B: Crear el MediaItem dentro del Álbum específico de Danna
+  const createUrl = "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate";
+  const createPayload = {
+    "albumId": GOOGLE_PHOTOS_ALBUM_ID,
+    "newMediaItems": [
+      {
+        "description": "15 Años de Danna • De: " + guestName + (comment ? (" - " + comment) : ""),
+        "simpleMediaItem": {
+          "fileName": fileName,
+          "uploadToken": uploadToken
+        }
+      }
+    ]
+  };
+
+  const createResponse = UrlFetchApp.fetch(createUrl, {
+    method: "post",
+    contentType: "application/json",
+    headers: { "Authorization": "Bearer " + token },
+    payload: JSON.stringify(createPayload),
+    muteHttpExceptions: true
+  });
+
+  if (createResponse.getResponseCode() === 200) {
+    const res = JSON.parse(createResponse.getContentText());
+    if (res.newMediaItemResults && res.newMediaItemResults.length > 0) {
+      return res.newMediaItemResults[0].mediaItem ? res.newMediaItemResults[0].mediaItem.id : null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Maneja peticiones GET (para verificar conexión o listar recuerdos)
  */
 function doGet(e) {
@@ -127,14 +205,15 @@ function doGet(e) {
     if (action === "ping") {
       return responseJSON({
         status: "ok",
-        message: "Backend de Google Drive / Fotos activo para 15 Años de Danna",
+        message: "Backend de Google Fotos activo para 15 Años de Danna",
+        albumId: GOOGLE_PHOTOS_ALBUM_ID,
+        albumUrl: GOOGLE_PHOTOS_ALBUM_URL,
         time: new Date().toISOString()
       });
     }
 
     if (action === "list") {
-      // Listar todas las carpetas y fotos
-      const mainFolder = getOrCreateMainFolder(MAIN_FOLDER_NAME);
+      const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
       const subfolders = mainFolder.getFolders();
       const memories = [];
 
@@ -175,6 +254,7 @@ function doGet(e) {
       return responseJSON({
         status: "success",
         count: memories.length,
+        googlePhotosAlbumUrl: GOOGLE_PHOTOS_ALBUM_URL,
         memories: memories
       });
     }
@@ -186,9 +266,6 @@ function doGet(e) {
   }
 }
 
-/**
- * Helper para obtener o crear la carpeta principal
- */
 function getOrCreateMainFolder(folderName) {
   const folders = DriveApp.getFoldersByName(folderName);
   if (folders.hasNext()) {
@@ -199,11 +276,7 @@ function getOrCreateMainFolder(folderName) {
   return folder;
 }
 
-/**
- * Helper para retornar JSON con cabeceras CORS correctas
- */
 function responseJSON(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
-

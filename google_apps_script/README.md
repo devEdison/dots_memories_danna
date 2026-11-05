@@ -1,40 +1,32 @@
-# 📸 Backend de Google Fotos / Google Drive para "15 Años de Danna"
+# 📸 Álbum Destino de Google Fotos para "15 Años de Danna"
 
-Este script de Google Apps Script permite que los invitados a los 15 de Danna suban **todas las fotos que quieran** junto con sus dedicatorias desde la app web Flutter, guardándolas automáticamente en la cuenta de Google de la quinceañera o de sus padres, **sin costo de almacenamiento y sin pedir login a los invitados**.
-
----
-
-## 🌟 ¿Cómo funciona con Google Fotos y Google Drive?
-
-1. **Almacenamiento Gratuito de Google**: Cada cuenta de Google incluye **15 GB de almacenamiento gratuito**, lo que equivale a más de **5,000 fotos en alta calidad**. Si la familia ya tiene Google One, tienen 100GB o más.
-2. **Organización en Carpetas**: Cada invitado crea su propia carpeta dentro de `"15 Años Danna - Fotos de Invitados"`, conteniendo:
-   - Todas sus fotos originales sin límite.
-   - Un archivo de texto `Dedicatoria_[Invitado].txt` con el mensaje y la fecha.
-3. **Sincronización con Google Fotos**:
-   - En Google Drive, puedes seleccionar la carpeta `"15 Años Danna - Fotos de Invitados"` y crear un álbum en Google Fotos con 1 solo clic ("Subir a Google Fotos" o "Crear álbum en Google Fotos").
-   - Las fotos también se visualizan inmediatamente en la app web en tiempo real.
+**Enlace del Álbum de Google Fotos:**  
+👉 [https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm](https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm)  
+**ID del Álbum:** `AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm`
 
 ---
 
-## 🚀 Pasos de Instalación (2 minutos)
+## 🌟 ¿Cómo funciona la integración?
 
-1. Abre tu navegador e ingresa a [script.google.com](https://script.google.com/) con la cuenta de Google donde desees guardar las fotos.
-2. Haz clic en el botón superior izquierdo **"Nuevo proyecto"**.
-3. Ponle un nombre al proyecto, por ejemplo: `Dots Memories Danna Backend`.
-4. Borra el código que aparece por defecto en el editor y pega todo el contenido de [`Code.js`](./Code.js).
-5. Haz clic en el botón azul **"Implementar"** (arriba a la derecha) y selecciona **"Nueva implementación"**.
-6. En el selector de tipo (icono de engranaje ⚙️ a la izquierda), elige **"Aplicación web"**.
-7. Llena los datos:
-   - **Descripción**: `Backend Danna XV`
+1. **Subida Directa**: Los invitados suben sus fotos desde la app web Flutter (sin tener que iniciar sesión en Google).
+2. **Recepción en Google Apps Script**:
+   - Guarda las fotos en el Álbum de Google Fotos: `AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm`.
+   - Crea una subcarpeta en Google Drive con el nombre del invitado y su archivo `Dedicatoria_[Invitado].txt`.
+3. **Visualización Inmediata**:
+   - En la aplicación web de Danna con los colores Verde Salvia y Rosado.
+   - En el álbum oficial de Google Fotos accesible con el botón directo de la aplicación.
+
+---
+
+## 🚀 Despliegue en 2 minutos
+
+1. Abre tu navegador e ingresa a [script.google.com](https://script.google.com/) con la cuenta de Google dueña del álbum de fotos.
+2. Haz clic en **"Nuevo proyecto"** y nómbralo `Dots Memories Danna`.
+3. Pega todo el contenido de [`Code.js`](./Code.js).
+4. *(Opcional)* En el menú lateral izquierdo, haz clic en **Configuración del proyecto (⚙️)** y marca la casilla *"Mostrar archivo de manifiesto 'appsscript.json' en el editor"*. Luego pega el contenido de [`appsscript.json`](./appsscript.json).
+5. Haz clic en **"Implementar" > "Nueva implementación"**.
+6. En tipo de implementación (engranaje ⚙️) elige **"Aplicación web"**:
    - **Ejecutar como**: `Yo (tu correo de Google)`
-   - **Quién tiene acceso**: **`Cualquiera`** *(Importante: Debe ser "Cualquiera" para que los invitados puedan subir fotos sin tener que iniciar sesión ni pedir permisos)*.
-8. Haz clic en **"Implementar"**.
-9. Google te pedirá "Autorizar acceso":
-   - Selecciona tu cuenta de Google.
-   - Si sale una pantalla de "Google no ha verificado esta aplicación", haz clic en **"Configuración avanzada"** (o "Avanzado") y luego en **"Ir a Dots Memories Danna Backend (no seguro)"**.
-   - Haz clic en **"Permitir"**.
-10. Se mostrará una ventana con la **"URL de la aplicación web"** (que termina en `/exec`).
-11. **Copia esa URL** y en la app web de Danna, abre el botón de **Configuración ⚙️** y pégala.
-
-¡Listo! A partir de ese momento, cada foto subida se guardará directamente en tu Google Drive.
-
+   - **Quién tiene acceso**: **`Cualquiera`** *(permite que tus invitados suban fotos sin pedirles contraseña)*.
+7. Haz clic en **"Implementar"** y autoriza los permisos.
+8. Copia la **URL de la aplicación web** (terminada en `/exec`) y pégala en la app web de Danna en el botón de **Google Nube ☁️**.

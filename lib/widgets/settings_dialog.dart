@@ -363,6 +363,63 @@ function responseJSON(obj) {
                     ),
                     const SizedBox(height: 10),
 
+                    // Tarjeta del Álbum de Google Fotos Vinculado
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.softPinkBg,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppTheme.pinkBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('🌸', style: TextStyle(fontSize: 18)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Álbum Oficial de Danna en Google Fotos',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AppTheme.sageDeep,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: AppTheme.mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton.icon(
+                            onPressed: () => DownloadHelper.openUrl(
+                              widget.storageService.config.googlePhotosAlbumUrl,
+                            ),
+                            icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                            label: const Text('Abrir Álbum en Google Fotos'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.dustyPink,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

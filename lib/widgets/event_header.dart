@@ -12,6 +12,7 @@ class EventHeader extends StatelessWidget {
   final VoidCallback onQrPressed;
   final VoidCallback onSettingsPressed;
   final VoidCallback onUnlockPressed;
+  final VoidCallback onGooglePhotosPressed;
   final String activeTab;
   final ValueChanged<String> onTabChanged;
 
@@ -26,6 +27,7 @@ class EventHeader extends StatelessWidget {
     required this.onQrPressed,
     required this.onSettingsPressed,
     required this.onUnlockPressed,
+    required this.onGooglePhotosPressed,
     required this.activeTab,
     required this.onTabChanged,
   });
@@ -141,13 +143,20 @@ class EventHeader extends StatelessWidget {
                           ],
                         ),
 
-                        // Botones rápidos: Slideshow, QR, Configuración
+                        // Botones rápidos: Google Fotos, Slideshow, QR, Configuración
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildIconButton(
+                              icon: Icons.photo_library_rounded,
+                              label: isCompact ? null : 'Google Fotos',
+                              tooltip: 'Ver álbum oficial en Google Fotos',
+                              onTap: onGooglePhotosPressed,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildIconButton(
                               icon: Icons.qr_code_rounded,
-                              label: isCompact ? null : 'Llave QR Mesa',
+                              label: isCompact ? null : 'Llave QR',
                               tooltip: 'Código QR con llave de acceso para invitados',
                               onTap: onQrPressed,
                             ),
@@ -161,7 +170,7 @@ class EventHeader extends StatelessWidget {
                             const SizedBox(width: 8),
                             _buildIconButton(
                               icon: Icons.cloud_outlined,
-                              label: isCompact ? null : 'Google Nube',
+                              label: isCompact ? null : 'Nube',
                               tooltip: 'Configuración de Google Fotos / Drive',
                               onTap: onSettingsPressed,
                             ),
