@@ -45,6 +45,29 @@ class WebHelperImpl extends WebHelper {
       return 'https://dotsmemories.danna15.com';
     }
   }
+
+  @override
+  String? getQueryParam(String paramName) {
+    try {
+      final current = web.window.location.href;
+      final uri = Uri.parse(current);
+      return uri.queryParameters[paramName];
+    } catch (e) {
+      debugPrint('Error obteniendo query param: $e');
+      return null;
+    }
+  }
+
+  @override
+  String buildAccessUrl(String accessKey) {
+    try {
+      final origin = web.window.location.origin;
+      final pathname = web.window.location.pathname;
+      return '$origin$pathname?key=$accessKey';
+    } catch (_) {
+      return 'https://dotsmemories.danna15.com/?key=$accessKey';
+    }
+  }
 }
 
 WebHelper getWebHelper() => WebHelperImpl();

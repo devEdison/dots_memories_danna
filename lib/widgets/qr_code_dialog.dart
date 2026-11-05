@@ -1,36 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/download_helper.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class QrCodeDialog extends StatelessWidget {
-  const QrCodeDialog({super.key});
+  final StorageService storageService;
 
-  String _getCurrentUrl() {
-    return DownloadHelper.getCurrentUrl();
+  const QrCodeDialog({super.key, required this.storageService});
+
+  String _getAccessUrl() {
+    final accessKey = storageService.config.accessKey;
+    return DownloadHelper.buildAccessUrl(accessKey);
   }
 
   void _printQr() {
     DownloadHelper.printPage();
   }
 
+  void _copyLink(BuildContext context, String url) {
+    Clipboard.setData(ClipboardData(text: url));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppTheme.sageDark,
+        content: const Text('¡Enlace con llave de acceso copiado al portapapeles! 🌸'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final qrUrl = _getCurrentUrl();
+    final qrAccessUrl = _getAccessUrl();
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final accessKey = storageService.config.accessKey;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
       child: Container(
-        width: isMobile ? double.infinity : 460,
+        width: isMobile ? double.infinity : 480,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryRose.withAlpha(50),
+              color: AppTheme.sageGreen.withAlpha(40),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -40,12 +56,12 @@ class QrCodeDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Cabecera
+            // Cabecera Verde Salvia & Rosado
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppTheme.heroGradient,
-                border: const Border(
+                border: Border(
                   bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
                 ),
               ),
@@ -54,15 +70,35 @@ class QrCodeDialog extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text('📲', style: TextStyle(fontSize: 20)),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Código QR para Mesas',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: AppTheme.deepPlum,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.softPinkBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.pinkBorder),
                         ),
+                        child: const Icon(Icons.qr_code_2_rounded, color: AppTheme.dustyPink, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Llave QR para Mesas',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AppTheme.sageDeep,
+                            ),
+                          ),
+                          Text(
+                            'Clave de acceso: $accessKey',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: AppTheme.mutedText,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -75,72 +111,98 @@ class QrCodeDialog extends StatelessWidget {
               ),
             ),
 
-            // Tarjeta imprimible de mesa
+            // Tarjeta de mesa elegante en Verde Salvia y Rosado
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(22),
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: AppTheme.softBlush,
+                      color: AppTheme.sageLight,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppTheme.primaryRose.withAlpha(80), width: 1.5),
+                      border: Border.all(color: AppTheme.sageBorder, width: 1.5),
                     ),
                     child: Column(
                       children: [
-                        const Text('👑', style: TextStyle(fontSize: 36)),
-                        const SizedBox(height: 8),
+                        const Text('👑', style: TextStyle(fontSize: 34)),
+                        const SizedBox(height: 6),
                         Text(
                           'Mis 15 Años • Danna',
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.deepPlum,
+                            color: AppTheme.sageDeep,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
-                          '¡Comparte tus fotos con nosotros!',
+                          '¡Sube tus fotos a nuestro álbum de recuerdos!',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: AppTheme.mutedText,
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
 
                         // Código QR renderizado
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.pinkBorder, width: 1.5),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withAlpha(10),
-                                blurRadius: 10,
+                                color: AppTheme.blushPink.withAlpha(40),
+                                blurRadius: 16,
                               ),
                             ],
                           ),
                           child: QrImageView(
-                            data: qrUrl,
+                            data: qrAccessUrl,
                             version: QrVersions.auto,
-                            size: 200.0,
+                            size: 195.0,
                             eyeStyle: const QrEyeStyle(
                               eyeShape: QrEyeShape.square,
-                              color: AppTheme.primaryDarkRose,
+                              color: AppTheme.sageDark,
                             ),
                             dataModuleStyle: const QrDataModuleStyle(
                               dataModuleShape: QrDataModuleShape.square,
-                              color: AppTheme.deepPlum,
+                              color: AppTheme.sageDeep,
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.sageBorder),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.key_rounded, size: 13, color: AppTheme.dustyPink),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Llave de acceso: $accessKey',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.sageDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         Text(
-                          'Abre la cámara de tu teléfono y escanea este código para subir tus recuerdos a la fiesta',
+                          'Escanea con la cámara de tu teléfono para acceder y subir fotos sin límites.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 11,
@@ -152,23 +214,30 @@ class QrCodeDialog extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _printQr,
-                          icon: const Icon(Icons.print_rounded),
-                          label: const Text('Imprimir'),
+                          onPressed: () => _copyLink(context, qrAccessUrl),
+                          icon: const Icon(Icons.link_rounded, size: 16),
+                          label: const Text('Copiar Enlace'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.sageDark,
+                            side: const BorderSide(color: AppTheme.sageBorder),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.check_rounded),
-                          label: const Text('Listo'),
+                          onPressed: _printQr,
+                          icon: const Icon(Icons.print_rounded, size: 16),
+                          label: const Text('Imprimir'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.sageGreen,
+                          ),
                         ),
                       ),
                     ],

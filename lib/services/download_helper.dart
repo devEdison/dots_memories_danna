@@ -21,4 +21,12 @@ class DownloadHelper {
   static String getCurrentUrl() {
     return webHelper.getCurrentUrl();
   }
+
+  static String? getQueryParam(String paramName) {
+    return webHelper.getQueryParam(paramName);
+  }
+
+  static String buildAccessUrl(String accessKey) {
+    return webHelper.buildAccessUrl(accessKey);
+  }
 }

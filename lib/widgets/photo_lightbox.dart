@@ -126,7 +126,7 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                           if (progress == null) return child;
                           return Center(
                             child: CircularProgressIndicator(
-                              color: AppTheme.primaryRose,
+                              color: AppTheme.sageGreen,
                               value: progress.expectedTotalBytes != null
                                   ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
                                   : null,

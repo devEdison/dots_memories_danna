@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/app_config.dart';
+import '../services/download_helper.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
@@ -19,7 +20,9 @@ class SettingsDialog extends StatefulWidget {
 
 class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController _urlController;
+  late TextEditingController _keyController;
   late bool _useGoogle;
+  late bool _requireKey;
   bool _isTesting = false;
   String? _testMessage;
   bool? _testSuccess;
@@ -29,12 +32,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
     super.initState();
     final config = widget.storageService.config;
     _urlController = TextEditingController(text: config.googleScriptUrl);
+    _keyController = TextEditingController(text: config.accessKey);
     _useGoogle = config.useGoogleBackend;
+    _requireKey = config.requireAccessKey;
   }
 
   @override
   void dispose() {
     _urlController.dispose();
+    _keyController.dispose();
     super.dispose();
   }
 
@@ -72,6 +78,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
       eventTitle: widget.storageService.config.eventTitle,
       eventDate: widget.storageService.config.eventDate,
       quinceaneraName: widget.storageService.config.quinceaneraName,
+      accessKey: _keyController.text.trim().isEmpty ? 'DANNA15' : _keyController.text.trim().toUpperCase(),
+      requireAccessKey: _requireKey,
     );
 
     await widget.storageService.saveConfig(updated);
@@ -79,9 +87,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Configuración guardada correctamente'),
-          backgroundColor: Color(0xFF2E7D32),
+        SnackBar(
+          content: const Text('Configuración guardada correctamente 🌸'),
+          backgroundColor: AppTheme.sageDark,
         ),
       );
     }
@@ -157,9 +165,9 @@ function responseJSON(obj) {
 
     Clipboard.setData(const ClipboardData(text: scriptCode));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('¡Código de Google Apps Script copiado al portapapeles!'),
-        backgroundColor: AppTheme.primaryRose,
+      SnackBar(
+        content: const Text('¡Código de Google Apps Script copiado al portapapeles! 🌸'),
+        backgroundColor: AppTheme.sageGreen,
       ),
     );
   }
@@ -167,19 +175,20 @@ function responseJSON(obj) {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final currentInviteUrl = DownloadHelper.buildAccessUrl(_keyController.text.trim());
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
       child: Container(
-        width: isMobile ? double.infinity : 640,
-        constraints: const BoxConstraints(maxHeight: 700),
+        width: isMobile ? double.infinity : 660,
+        constraints: const BoxConstraints(maxHeight: 740),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryRose.withAlpha(40),
+              color: AppTheme.sageGreen.withAlpha(40),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -188,12 +197,12 @@ function responseJSON(obj) {
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            // Header
+            // Header Verde Salvia & Rosado
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppTheme.heroGradient,
-                border: const Border(
+                border: Border(
                   bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
                 ),
               ),
@@ -201,11 +210,12 @@ function responseJSON(obj) {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: AppTheme.softPinkBg,
                       shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.pinkBorder),
                     ),
-                    child: const Icon(Icons.cloud_outlined, color: AppTheme.primaryRose),
+                    child: const Icon(Icons.tune_rounded, color: AppTheme.sageDark),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -213,15 +223,15 @@ function responseJSON(obj) {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Google Fotos & Nube',
+                          'Ajustes & Llave de Acceso',
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.deepPlum,
+                            color: AppTheme.sageDeep,
                           ),
                         ),
                         Text(
-                          'Almacena fotos sin costo y organízalas por carpetas de invitado',
+                          'Control de subidas, clave QR y Google Nube',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: AppTheme.mutedText,
@@ -246,13 +256,119 @@ function responseJSON(obj) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Switch Google Fotos / Drive
+                    // SECCIÓN 1: LLAVE DE ACCESO QR
+                    Text(
+                      '🔑 LLAVE DE ACCESO EXCLUSIVA',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                        color: AppTheme.sageDark,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.softBlush,
+                        color: AppTheme.softPinkBg,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppTheme.borderLight),
+                        border: Border.all(color: AppTheme.pinkBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Exigir llave de acceso para subir fotos',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: AppTheme.sageDeep,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Solo quienes escaneen el QR con la URL autorizada podrán subir fotos.',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: AppTheme.mutedText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _requireKey,
+                                activeThumbColor: AppTheme.dustyPink,
+                                onChanged: (val) => setState(() => _requireKey = val),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _keyController,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: InputDecoration(
+                              labelText: 'Clave de Acceso (se incluye en el QR)',
+                              hintText: 'DANNA15',
+                              prefixIcon: const Icon(Icons.key_rounded, color: AppTheme.dustyPink),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'URL con llave: $currentInviteUrl',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: AppTheme.sageDark,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.copy_rounded, size: 16),
+                                tooltip: 'Copiar enlace con llave',
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: currentInviteUrl));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Enlace copiado al portapapeles')),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // SECCIÓN 2: GOOGLE DRIVE / FOTOS
+                    Text(
+                      '☁️ ALMACENAMIENTO GOOGLE FOTOS / DRIVE',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                        color: AppTheme.sageDark,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.sageLight,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppTheme.sageBorder),
                       ),
                       child: Row(
                         children: [
@@ -261,18 +377,18 @@ function responseJSON(obj) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Subir a Google Drive / Google Fotos',
+                                  'Subir a Google Drive / Fotos',
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppTheme.deepPlum,
+                                    fontSize: 13,
+                                    color: AppTheme.sageDeep,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Las fotos se guardan automáticamente en tu Google Drive dentro de una carpeta por cada invitado.',
+                                  'Crea carpetas por invitado en tu Google Drive sin costo alguno.',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     color: AppTheme.mutedText,
                                   ),
                                 ),
@@ -281,30 +397,21 @@ function responseJSON(obj) {
                           ),
                           Switch(
                             value: _useGoogle,
-                            activeThumbColor: AppTheme.primaryRose,
+                            activeThumbColor: AppTheme.sageGreen,
                             onChanged: (val) => setState(() => _useGoogle = val),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
 
-                    // Campo de URL del Script
-                    Text(
-                      'URL de Google Apps Script Web App',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: AppTheme.deepPlum,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
                     TextField(
                       controller: _urlController,
                       decoration: InputDecoration(
+                        labelText: 'URL de Google Apps Script Web App',
                         hintText: 'https://script.google.com/macros/s/.../exec',
-                        prefixIcon: const Icon(Icons.link_rounded, color: AppTheme.primaryRose),
+                        prefixIcon: const Icon(Icons.cloud_upload_outlined, color: AppTheme.sageGreen),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.paste_rounded, size: 20),
                           onPressed: () async {
@@ -319,7 +426,6 @@ function responseJSON(obj) {
 
                     const SizedBox(height: 12),
 
-                    // Botón probar conexión
                     Row(
                       children: [
                         OutlinedButton.icon(
@@ -333,7 +439,8 @@ function responseJSON(obj) {
                               : const Icon(Icons.wifi_tethering_rounded, size: 16),
                           label: Text(_isTesting ? 'Probando...' : 'Probar Conexión'),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            foregroundColor: AppTheme.sageDark,
+                            side: const BorderSide(color: AppTheme.sageBorder),
                           ),
                         ),
                         const Spacer(),
@@ -342,7 +449,7 @@ function responseJSON(obj) {
                           icon: const Icon(Icons.copy_rounded, size: 16),
                           label: const Text('Copiar Script'),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.primaryDarkRose,
+                            foregroundColor: AppTheme.sageDark,
                             textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -382,17 +489,17 @@ function responseJSON(obj) {
                       ),
                     ],
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Explicación paso a paso
                     ExpansionTile(
                       tilePadding: EdgeInsets.zero,
                       title: Text(
-                        '📖 ¿Cómo crear el script de Google en 2 minutos?',
+                        '📖 ¿Cómo instalar el script de Google en 2 min?',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: AppTheme.primaryRose,
+                          color: AppTheme.sageDark,
                         ),
                       ),
                       children: [
@@ -402,9 +509,9 @@ function responseJSON(obj) {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildStep(1, 'Entra a script.google.com y haz clic en "Nuevo proyecto".'),
-                              _buildStep(2, 'Haz clic en el botón "Copiar Script" arriba y pega el código en el editor.'),
+                              _buildStep(2, 'Pulsa "Copiar Script" arriba y pega el código en el editor.'),
                               _buildStep(3, 'Haz clic en Implementar > Nueva implementación > Tipo: Aplicación web.'),
-                              _buildStep(4, 'En "Quién tiene acceso" selecciona: "Cualquiera" (para que tus invitados suban sin login).'),
+                              _buildStep(4, 'En "Quién tiene acceso" selecciona: "Cualquiera".'),
                               _buildStep(5, 'Copia la URL que termina en /exec y pégala aquí.'),
                             ],
                           ),
@@ -426,7 +533,7 @@ function responseJSON(obj) {
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: AppTheme.deepPlum,
+                                color: AppTheme.sageDeep,
                               ),
                             ),
                             Text(
@@ -469,6 +576,7 @@ function responseJSON(obj) {
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _save,
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.sageGreen),
                     child: const Text('Guardar Cambios'),
                   ),
                 ],
@@ -491,7 +599,7 @@ function responseJSON(obj) {
             height: 20,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: AppTheme.softBlush,
+              color: AppTheme.sageLight,
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -499,7 +607,7 @@ function responseJSON(obj) {
               style: GoogleFonts.poppins(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRose,
+                color: AppTheme.sageDark,
               ),
             ),
           ),

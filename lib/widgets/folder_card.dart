@@ -26,12 +26,12 @@ class FolderCard extends StatelessWidget {
 
   Color _getAvatarColor(String name) {
     final colors = [
-      const Color(0xFFC75D76),
-      const Color(0xFFD4AF37),
-      const Color(0xFF8E44AD),
-      const Color(0xFF3498DB),
-      const Color(0xFFE67E22),
-      const Color(0xFF16A085),
+      AppTheme.sageGreen,
+      AppTheme.dustyPink,
+      AppTheme.sageDark,
+      AppTheme.blushPink,
+      const Color(0xFF5B7F67),
+      const Color(0xFFC07688),
     ];
     int hash = 0;
     for (int i = 0; i < name.length; i++) {
@@ -55,23 +55,23 @@ class FolderCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 4,
-      shadowColor: AppTheme.primaryRose.withAlpha(30),
+      shadowColor: AppTheme.sageGreen.withAlpha(25),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: AppTheme.borderLight, width: 1.2),
+        side: const BorderSide(color: AppTheme.sageBorder, width: 1.2),
       ),
       child: InkWell(
         onTap: onOpen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera de la carpeta estilo pestaña
+            // Cabecera de la carpeta estilo pestaña Verde Salvia
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.softBlush,
-                border: const Border(
-                  bottom: BorderSide(color: AppTheme.borderLight, width: 1),
+              decoration: const BoxDecoration(
+                color: AppTheme.sageLight,
+                border: Border(
+                  bottom: BorderSide(color: AppTheme.sageBorder, width: 1),
                 ),
               ),
               child: Row(
@@ -102,7 +102,7 @@ class FolderCard extends StatelessWidget {
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: AppTheme.deepPlum,
+                            color: AppTheme.sageDeep,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -122,19 +122,19 @@ class FolderCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.blue.withAlpha(60)),
+                                  border: Border.all(color: AppTheme.sageBorder),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.cloud_done_rounded, size: 11, color: Colors.blue),
+                                    const Icon(Icons.cloud_done_rounded, size: 11, color: AppTheme.sageDark),
                                     const SizedBox(width: 3),
                                     Text(
                                       'Google Nube',
                                       style: GoogleFonts.poppins(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.blue.shade700,
+                                        color: AppTheme.sageDark,
                                       ),
                                     ),
                                   ],
@@ -146,25 +146,25 @@ class FolderCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Badge de cantidad de fotos
+                  // Badge de cantidad de fotos en Rosado
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.softPinkBg,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(color: AppTheme.pinkBorder),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.photo_library_outlined, size: 14, color: AppTheme.primaryRose),
+                        const Icon(Icons.photo_library_outlined, size: 14, color: AppTheme.dustyPink),
                         const SizedBox(width: 4),
                         Text(
                           '$photoCount',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryRose,
+                            color: AppTheme.deepRose,
                           ),
                         ),
                       ],
@@ -193,7 +193,7 @@ class FolderCard extends StatelessWidget {
                           '“',
                           style: TextStyle(
                             fontSize: 22,
-                            color: AppTheme.primaryRose,
+                            color: AppTheme.dustyPink,
                             fontWeight: FontWeight.bold,
                             height: 0.8,
                           ),
@@ -242,7 +242,7 @@ class FolderCard extends StatelessWidget {
                               const Icon(
                                 Icons.favorite_rounded,
                                 size: 18,
-                                color: Color(0xFFE55375),
+                                color: AppTheme.dustyPink,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -266,14 +266,14 @@ class FolderCard extends StatelessWidget {
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryRose,
+                              color: AppTheme.sageDark,
                             ),
                           ),
                           const SizedBox(width: 2),
                           const Icon(
                             Icons.arrow_forward_rounded,
                             size: 14,
-                            color: AppTheme.primaryRose,
+                            color: AppTheme.sageDark,
                           ),
                         ],
                       ),
@@ -292,12 +292,12 @@ class FolderCard extends StatelessWidget {
     final photos = folder.photos;
     if (photos.isEmpty) {
       return Container(
-        color: AppTheme.softBlush,
+        color: AppTheme.sageLight,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.photo_outlined, size: 36, color: AppTheme.borderLight),
+              const Icon(Icons.photo_outlined, size: 36, color: AppTheme.sageBorder),
               const SizedBox(height: 6),
               Text(
                 'Sin fotos',
@@ -310,7 +310,7 @@ class FolderCard extends StatelessWidget {
     }
 
     if (photos.length == 1) {
-      return _buildImageTile(photos[0].imageProvider, isFull: true);
+      return _buildImageTile(photos[0].imageProvider);
     }
 
     if (photos.length == 2) {
@@ -392,10 +392,10 @@ class FolderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageTile(ImageProvider provider, {bool isFull = false}) {
+  Widget _buildImageTile(ImageProvider provider) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.softBlush,
+        color: AppTheme.sageLight,
         image: DecorationImage(
           image: provider,
           fit: BoxFit.cover,

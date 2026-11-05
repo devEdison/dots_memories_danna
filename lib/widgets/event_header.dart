@@ -6,10 +6,12 @@ class EventHeader extends StatelessWidget {
   final int totalPhotos;
   final int totalFolders;
   final int totalLikes;
+  final bool isAccessUnlocked;
   final VoidCallback onUploadPressed;
   final VoidCallback onSlideshowPressed;
   final VoidCallback onQrPressed;
   final VoidCallback onSettingsPressed;
+  final VoidCallback onUnlockPressed;
   final String activeTab;
   final ValueChanged<String> onTabChanged;
 
@@ -18,17 +20,21 @@ class EventHeader extends StatelessWidget {
     required this.totalPhotos,
     required this.totalFolders,
     required this.totalLikes,
+    required this.isAccessUnlocked,
     required this.onUploadPressed,
     required this.onSlideshowPressed,
     required this.onQrPressed,
     required this.onSettingsPressed,
+    required this.onUnlockPressed,
     required this.activeTab,
     required this.onTabChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isCompact = screenWidth < 900;
 
     return Container(
       width: double.infinity,
@@ -39,7 +45,7 @@ class EventHeader extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryRose.withAlpha(20),
+            color: AppTheme.sageGreen.withAlpha(20),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -47,18 +53,18 @@ class EventHeader extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Elementos decorativos de fondo (destellos sutiles)
+          // Elementos decorativos de fondo en verde salvia y rosa
           Positioned(
             top: -20,
             right: 40,
             child: Opacity(
-              opacity: 0.08,
+              opacity: 0.06,
               child: Text(
                 '15',
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 220,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryRose,
+                  color: AppTheme.sageGreen,
                 ),
               ),
             ),
@@ -67,9 +73,9 @@ class EventHeader extends StatelessWidget {
             bottom: 10,
             left: 20,
             child: Opacity(
-              opacity: 0.12,
+              opacity: 0.15,
               child: Text(
-                '✨ 🌸 👑 💖',
+                '🌿 🌸 👑 ✨',
                 style: const TextStyle(fontSize: 28),
               ),
             ),
@@ -85,106 +91,126 @@ class EventHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Barra superior con botones secundarios
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Badge "Dots Memories"
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: AppTheme.borderLight),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(8),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Row(
+                  // Barra superior responsive con Wrap (evita cualquier desbordamiento)
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        // Badge "Dots Memories" & Estado de llave QR
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('📸', style: TextStyle(fontSize: 14)),
-                            const SizedBox(width: 6),
-                            Text(
-                              'DOTS MEMORIES',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.5,
-                                color: AppTheme.primaryRose,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: AppTheme.sageBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(8),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('🌿', style: TextStyle(fontSize: 14)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'DOTS MEMORIES',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                      color: AppTheme.sageDark,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                            if (!isCompact) ...[
+                              const SizedBox(width: 10),
+                              _buildAccessBadge(),
+                            ],
                           ],
                         ),
-                      ),
 
-                      // Botones rápidos: Slideshow, QR, Configuración
-                      Row(
-                        children: [
-                          _buildIconButton(
-                            icon: Icons.qr_code_rounded,
-                            label: isMobile ? null : 'QR Mesa',
-                            tooltip: 'Código QR para las mesas',
-                            onTap: onQrPressed,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildIconButton(
-                            icon: Icons.slideshow_rounded,
-                            label: isMobile ? null : 'Proyector',
-                            tooltip: 'Pase de diapositivas en vivo',
-                            onTap: onSlideshowPressed,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildIconButton(
-                            icon: Icons.cloud_outlined,
-                            label: isMobile ? null : 'Google Nube',
-                            tooltip: 'Configuración de Google Fotos / Drive',
-                            onTap: onSettingsPressed,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Corona y Título Principal
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(200),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryRose.withAlpha(40),
-                          blurRadius: 16,
+                        // Botones rápidos: Slideshow, QR, Configuración
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildIconButton(
+                              icon: Icons.qr_code_rounded,
+                              label: isCompact ? null : 'Llave QR Mesa',
+                              tooltip: 'Código QR con llave de acceso para invitados',
+                              onTap: onQrPressed,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildIconButton(
+                              icon: Icons.slideshow_rounded,
+                              label: isCompact ? null : 'Proyector',
+                              tooltip: 'Pase de diapositivas en vivo',
+                              onTap: onSlideshowPressed,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildIconButton(
+                              icon: Icons.cloud_outlined,
+                              label: isCompact ? null : 'Google Nube',
+                              tooltip: 'Configuración de Google Fotos / Drive',
+                              onTap: onSettingsPressed,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    child: const Text('👑', style: TextStyle(fontSize: 40)),
+                  ),
+
+                  if (isCompact) ...[
+                    const SizedBox(height: 12),
+                    _buildAccessBadge(),
+                  ],
+
+                  const SizedBox(height: 22),
+
+                  // Corona e icono floral
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(220),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.pinkBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.blushPink.withAlpha(50),
+                          blurRadius: 18,
+                        ),
+                      ],
+                    ),
+                    child: const Text('👑', style: TextStyle(fontSize: 38)),
                   ),
                   const SizedBox(height: 12),
 
-                  ShaderMask(
-                    shaderCallback: (bounds) => AppTheme.roseGoldGradient.createShader(bounds),
-                    child: Text(
-                      'Mis 15 Años • Danna',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: isMobile ? 32 : 46,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
+                  // Título principal con toque Salvia & Rosado
+                  Text(
+                    'Mis 15 Años • Danna',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: isMobile ? 32 : 46,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.sageDeep,
+                      letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: 6),
 
                   Text(
-                    '¡Bienvenido a mi álbum de recuerdos! Sube todas tus fotos y déjame tu dedicatoria.',
+                    '¡Bienvenido a mi álbum de recuerdos! Sube tus fotos de esta noche y déjame tu dedicatoria.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: isMobile ? 14 : 16,
@@ -193,7 +219,7 @@ class EventHeader extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 20),
 
                   // Métricas del evento
                   Wrap(
@@ -204,60 +230,65 @@ class EventHeader extends StatelessWidget {
                       _buildMetricPill(
                         icon: Icons.photo_library_rounded,
                         value: '$totalPhotos',
-                        label: 'Fotos subidas',
-                        color: AppTheme.primaryRose,
+                        label: 'Fotos de la fiesta',
+                        color: AppTheme.sageDark,
                       ),
                       _buildMetricPill(
                         icon: Icons.folder_shared_rounded,
                         value: '$totalFolders',
                         label: 'Carpetas de invitados',
-                        color: AppTheme.champagneGold,
+                        color: AppTheme.dustyPink,
                       ),
                       _buildMetricPill(
                         icon: Icons.favorite_rounded,
                         value: '$totalLikes',
                         label: 'Amores',
-                        color: const Color(0xFFE55375),
+                        color: AppTheme.deepRose,
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
 
-                  // BOTÓN PRINCIPAL DE SUBIDA
+                  // BOTÓN PRINCIPAL DE SUBIDA (Verde Salvia y Rosado)
                   ElevatedButton.icon(
                     onPressed: onUploadPressed,
-                    icon: const Icon(Icons.add_photo_alternate_rounded, size: 22),
+                    icon: Icon(
+                      isAccessUnlocked ? Icons.add_photo_alternate_rounded : Icons.lock_open_rounded,
+                      size: 22,
+                    ),
                     label: Text(
-                      isMobile ? 'Subir Mis Fotos' : 'Subir Fotos y Dedicatoria ✨',
+                      isAccessUnlocked
+                          ? (isMobile ? 'Subir Mis Fotos' : 'Subir Fotos y Dedicatoria 🌸')
+                          : 'Desbloquear y Subir Fotos 🔒',
                       style: GoogleFonts.poppins(
                         fontSize: isMobile ? 15 : 17,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryRose,
+                      backgroundColor: isAccessUnlocked ? AppTheme.sageGreen : AppTheme.dustyPink,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 26 : 38,
                         vertical: isMobile ? 14 : 18,
                       ),
-                      elevation: 6,
-                      shadowColor: AppTheme.primaryRose.withAlpha(120),
+                      elevation: 5,
+                      shadowColor: (isAccessUnlocked ? AppTheme.sageGreen : AppTheme.dustyPink).withAlpha(120),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
 
                   // PESTAÑAS: Carpetas de Invitados vs Muro General
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(color: AppTheme.sageBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withAlpha(8),
@@ -272,12 +303,12 @@ class EventHeader extends StatelessWidget {
                       children: [
                         _buildTabButton(
                           id: 'folders',
-                          label: '📁 Carpetas por Invitado',
+                          label: '📁 Carpetas de Invitados',
                           isActive: activeTab == 'folders',
                         ),
                         _buildTabButton(
                           id: 'wall',
-                          label: '🖼️ Muro de Todas las Fotos',
+                          label: '🌸 Muro de Fotos',
                           isActive: activeTab == 'wall',
                         ),
                       ],
@@ -288,6 +319,41 @@ class EventHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccessBadge() {
+    return GestureDetector(
+      onTap: onUnlockPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: isAccessUnlocked ? AppTheme.sageLight : AppTheme.softPinkBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isAccessUnlocked ? AppTheme.sageBorder : AppTheme.pinkBorder,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isAccessUnlocked ? Icons.verified_rounded : Icons.lock_outline_rounded,
+              size: 13,
+              color: isAccessUnlocked ? AppTheme.sageDark : AppTheme.deepRose,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              isAccessUnlocked ? 'Llave QR Activa (Subidas habilitadas)' : 'Escanea QR o ingresa clave',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isAccessUnlocked ? AppTheme.sageDark : AppTheme.deepRose,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -303,12 +369,12 @@ class EventHeader extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryRose : Colors.transparent,
+          color: isActive ? AppTheme.sageGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppTheme.primaryRose.withAlpha(80),
+                    color: AppTheme.sageGreen.withAlpha(80),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -348,7 +414,7 @@ class EventHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 18, color: AppTheme.primaryRose),
+                Icon(icon, size: 18, color: AppTheme.sageGreen),
                 if (label != null) ...[
                   const SizedBox(width: 6),
                   Text(
@@ -377,7 +443,7 @@ class EventHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(220),
+        color: Colors.white.withAlpha(230),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withAlpha(50)),
         boxShadow: [
@@ -398,7 +464,7 @@ class EventHeader extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppTheme.deepPlum,
+              color: AppTheme.sageDeep,
             ),
           ),
           const SizedBox(width: 4),

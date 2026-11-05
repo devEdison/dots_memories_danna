@@ -24,6 +24,16 @@ class _UploadModalState extends State<UploadModal> {
   final List<SelectedFile> _selectedFiles = [];
   bool _isPicking = false;
 
+  static const Set<String> _validPhotoExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'heic',
+    'heif',
+    'bmp',
+  };
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -39,16 +49,23 @@ class _UploadModalState extends State<UploadModal> {
       );
 
       if (result.isNotEmpty) {
+        int skippedNonPhotos = 0;
+
         for (final file in result) {
+          final ext = file.extension?.toLowerCase() ?? '';
+          // Validación estricta: ÚNICAMENTE fotos
+          if (!_validPhotoExtensions.contains(ext)) {
+            skippedNonPhotos++;
+            continue;
+          }
+
           final bytes = await file.readAsBytes();
           final size = (await file.length()) ?? bytes.length;
 
-          // Determinar mimeType básico
           String mime = 'image/jpeg';
-          final ext = file.extension?.toLowerCase();
           if (ext == 'png') mime = 'image/png';
           if (ext == 'webp') mime = 'image/webp';
-          if (ext == 'heic') mime = 'image/heic';
+          if (ext == 'heic' || ext == 'heif') mime = 'image/heic';
 
           _selectedFiles.add(
             SelectedFile(
@@ -56,6 +73,18 @@ class _UploadModalState extends State<UploadModal> {
               bytes: bytes,
               size: size,
               mimeType: mime,
+            ),
+          );
+        }
+
+        if (skippedNonPhotos > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppTheme.dustyPink,
+              content: Text(
+                'Solo se permite subir fotos (JPG, PNG, WEBP, HEIC). Se omitieron $skippedNonPhotos archivo(s).',
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
             ),
           );
         }
@@ -84,9 +113,9 @@ class _UploadModalState extends State<UploadModal> {
 
     if (_selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor selecciona al menos una foto para subir 📸'),
-          backgroundColor: AppTheme.primaryRose,
+        SnackBar(
+          content: const Text('Por favor selecciona al menos una foto para subir 📸'),
+          backgroundColor: AppTheme.dustyPink,
         ),
       );
       return;
@@ -103,14 +132,14 @@ class _UploadModalState extends State<UploadModal> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF2E7D32),
+            backgroundColor: AppTheme.sageDark,
             content: Row(
               children: [
                 const Icon(Icons.check_circle_rounded, color: Colors.white),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '¡Tus fotos y dedicatoria han sido guardadas con éxito para Danna! 👑💖',
+                    '¡Tus fotos y dedicatoria han sido guardadas con éxito para Danna! 👑🌸',
                     style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -162,7 +191,7 @@ class _UploadModalState extends State<UploadModal> {
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryRose.withAlpha(50),
+                    color: AppTheme.sageGreen.withAlpha(50),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -174,12 +203,12 @@ class _UploadModalState extends State<UploadModal> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Encabezado
+                      // Encabezado en Verde Salvia & Rosado
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           gradient: AppTheme.heroGradient,
-                          border: const Border(
+                          border: Border(
                             bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
                           ),
                         ),
@@ -187,11 +216,12 @@ class _UploadModalState extends State<UploadModal> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: AppTheme.softPinkBg,
                                 shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.pinkBorder),
                               ),
-                              child: const Text('✨', style: TextStyle(fontSize: 20)),
+                              child: const Text('🌸', style: TextStyle(fontSize: 20)),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -199,15 +229,15 @@ class _UploadModalState extends State<UploadModal> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Subir Recuerdos para Danna',
+                                    'Subir Fotos para Danna',
                                     style: GoogleFonts.playfairDisplay(
                                       fontSize: isMobile ? 18 : 22,
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.deepPlum,
+                                      color: AppTheme.sageDeep,
                                     ),
                                   ),
                                   Text(
-                                    'Comparte todas las fotos que tomaste y tu dedicatoria',
+                                    'Comparte todas las fotos que tomaste y déjale tu dedicatoria',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: AppTheme.mutedText,
@@ -220,7 +250,10 @@ class _UploadModalState extends State<UploadModal> {
                               IconButton(
                                 onPressed: () => Navigator.of(context).pop(),
                                 icon: const Icon(Icons.close_rounded),
-                                style: IconButton.styleFrom(backgroundColor: Colors.white),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppTheme.charcoal,
+                                ),
                               ),
                           ],
                         ),
@@ -241,7 +274,7 @@ class _UploadModalState extends State<UploadModal> {
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: AppTheme.deepPlum,
+                                    color: AppTheme.sageDeep,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -250,7 +283,7 @@ class _UploadModalState extends State<UploadModal> {
                                   enabled: !isUploading,
                                   decoration: InputDecoration(
                                     hintText: 'Ej. Tía Carmen y Familia, Amigos de la escuela...',
-                                    prefixIcon: const Icon(Icons.person_rounded, color: AppTheme.primaryRose),
+                                    prefixIcon: const Icon(Icons.person_rounded, color: AppTheme.sageGreen),
                                   ),
                                   validator: (v) {
                                     if (v == null || v.trim().isEmpty) {
@@ -268,7 +301,7 @@ class _UploadModalState extends State<UploadModal> {
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: AppTheme.deepPlum,
+                                    color: AppTheme.sageDeep,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -277,27 +310,48 @@ class _UploadModalState extends State<UploadModal> {
                                   enabled: !isUploading,
                                   maxLines: 3,
                                   decoration: InputDecoration(
-                                    hintText: '¡Escribe aquí tus mejores deseos, anécdotas de la fiesta o un mensaje con todo tu cariño! 💕',
+                                    hintText: '¡Escribe aquí tus mejores deseos, anécdotas de la fiesta o un mensaje con todo tu cariño! 🌸💕',
                                     prefixIcon: const Padding(
                                       padding: EdgeInsets.only(bottom: 40),
-                                      child: Icon(Icons.message_rounded, color: AppTheme.primaryRose),
+                                      child: Icon(Icons.message_rounded, color: AppTheme.blushPink),
                                     ),
                                   ),
                                 ),
 
                                 const SizedBox(height: 22),
 
-                                // Zona de selección de fotos
+                                // Zona de selección de fotos (SOLO FOTOS)
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      'Fotos del Evento (${_selectedFiles.length})',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: AppTheme.deepPlum,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Fotos del Evento (${_selectedFiles.length})',
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: AppTheme.sageDeep,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.softPinkBg,
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(color: AppTheme.pinkBorder),
+                                          ),
+                                          child: Text(
+                                            'Solo fotos 📷',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.deepRose,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     if (_selectedFiles.isNotEmpty)
                                       Text(
@@ -319,10 +373,10 @@ class _UploadModalState extends State<UploadModal> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.softBlush,
+                                      color: AppTheme.sageLight,
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: AppTheme.primaryRose.withAlpha(120),
+                                        color: AppTheme.sageGreen.withAlpha(120),
                                         width: 1.8,
                                         style: BorderStyle.solid,
                                       ),
@@ -337,7 +391,7 @@ class _UploadModalState extends State<UploadModal> {
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppTheme.primaryRose.withAlpha(30),
+                                                color: AppTheme.sageGreen.withAlpha(30),
                                                 blurRadius: 10,
                                               ),
                                             ],
@@ -345,7 +399,7 @@ class _UploadModalState extends State<UploadModal> {
                                           child: const Icon(
                                             Icons.add_photo_alternate_rounded,
                                             size: 32,
-                                            color: AppTheme.primaryRose,
+                                            color: AppTheme.sageGreen,
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -356,16 +410,25 @@ class _UploadModalState extends State<UploadModal> {
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
-                                            color: AppTheme.primaryDarkRose,
+                                            color: AppTheme.sageDark,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '¡Puedes seleccionar todas las fotos que quieras a la vez! Sin límite.',
+                                          '¡Puedes subir todas las fotos que quieras a la vez! Sin límite.',
                                           textAlign: TextAlign.center,
                                           style: GoogleFonts.poppins(
                                             fontSize: 12,
                                             color: AppTheme.mutedText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Formatos permitidos: JPG, PNG, WEBP, HEIC',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppTheme.deepRose,
                                           ),
                                         ),
                                       ],
@@ -380,7 +443,7 @@ class _UploadModalState extends State<UploadModal> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Fotos listas para subir:',
+                                        'Fotos seleccionadas:',
                                         style: GoogleFonts.poppins(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
@@ -388,10 +451,10 @@ class _UploadModalState extends State<UploadModal> {
                                       ),
                                       TextButton.icon(
                                         onPressed: isUploading ? null : _pickPhotos,
-                                        icon: const Icon(Icons.add, size: 16),
-                                        label: const Text('Agregar más'),
+                                        icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+                                        label: const Text('Agregar más fotos'),
                                         style: TextButton.styleFrom(
-                                          foregroundColor: AppTheme.primaryRose,
+                                          foregroundColor: AppTheme.sageGreen,
                                           textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
                                         ),
                                       ),
@@ -411,7 +474,7 @@ class _UploadModalState extends State<UploadModal> {
                                           margin: const EdgeInsets.only(right: 10),
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(14),
-                                            border: Border.all(color: AppTheme.borderLight),
+                                            border: Border.all(color: AppTheme.sageBorder),
                                           ),
                                           clipBehavior: Clip.antiAlias,
                                           child: Stack(
@@ -459,7 +522,7 @@ class _UploadModalState extends State<UploadModal> {
                                   child: ElevatedButton(
                                     onPressed: isUploading ? null : _submit,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.primaryRose,
+                                      backgroundColor: AppTheme.sageGreen,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(18),
                                       ),
@@ -504,11 +567,11 @@ class _UploadModalState extends State<UploadModal> {
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.softBlush,
+                                  color: AppTheme.sageLight,
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.primaryRose.withAlpha(40),
+                                      color: AppTheme.sageGreen.withAlpha(40),
                                       blurRadius: 20,
                                     ),
                                   ],
@@ -516,7 +579,7 @@ class _UploadModalState extends State<UploadModal> {
                                 child: const Icon(
                                   Icons.cloud_upload_rounded,
                                   size: 48,
-                                  color: AppTheme.primaryRose,
+                                  color: AppTheme.sageGreen,
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -525,7 +588,7 @@ class _UploadModalState extends State<UploadModal> {
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.deepPlum,
+                                  color: AppTheme.sageDeep,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -553,8 +616,8 @@ class _UploadModalState extends State<UploadModal> {
                                       child: LinearProgressIndicator(
                                         value: progress > 0 ? progress : null,
                                         minHeight: 8,
-                                        backgroundColor: AppTheme.borderLight,
-                                        color: AppTheme.primaryRose,
+                                        backgroundColor: AppTheme.sageBorder,
+                                        color: AppTheme.sageGreen,
                                       ),
                                     );
                                   },

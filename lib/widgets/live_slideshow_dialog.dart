@@ -247,7 +247,7 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: const BoxDecoration(
-                        color: AppTheme.primaryRose,
+                        color: AppTheme.sageGreen,
                         shape: BoxShape.circle,
                       ),
                       child: const Text('💌', style: TextStyle(fontSize: 22)),

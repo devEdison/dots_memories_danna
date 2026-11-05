@@ -21,6 +21,16 @@ class WebHelperImpl extends WebHelper {
   String getCurrentUrl() {
     return 'https://dotsmemories.danna15.com';
   }
+
+  @override
+  String? getQueryParam(String paramName) {
+    return null;
+  }
+
+  @override
+  String buildAccessUrl(String accessKey) {
+    return 'https://dotsmemories.danna15.com/?key=$accessKey';
+  }
 }
 
 WebHelper getWebHelper() => WebHelperImpl();

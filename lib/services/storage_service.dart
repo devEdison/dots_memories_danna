@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_config.dart';
 import '../models/memory_folder.dart';
 import '../models/memory_item.dart';
+import 'download_helper.dart';
 import 'sample_data.dart';
 
 class SelectedFile {
@@ -28,15 +29,18 @@ class StorageService {
 
   static const String _prefKeyFolders = 'dots_memories_folders_v1';
   static const String _prefKeyConfig = 'dots_memories_config_v1';
+  static const String _prefKeyUnlocked = 'dots_memories_unlocked_v1';
 
   final ValueNotifier<List<MemoryFolder>> foldersNotifier = ValueNotifier<List<MemoryFolder>>([]);
   final ValueNotifier<AppConfig> configNotifier = ValueNotifier<AppConfig>(AppConfig());
   final ValueNotifier<bool> isUploadingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<double> uploadProgressNotifier = ValueNotifier<double>(0.0);
   final ValueNotifier<String> uploadStatusNotifier = ValueNotifier<String>('');
+  final ValueNotifier<bool> isAccessUnlockedNotifier = ValueNotifier<bool>(false);
 
   List<MemoryFolder> get folders => foldersNotifier.value;
   AppConfig get config => configNotifier.value;
+  bool get isAccessUnlocked => isAccessUnlockedNotifier.value;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -50,6 +54,21 @@ class StorageService {
       } catch (e) {
         debugPrint('Error decodificando configuración: $e');
       }
+    }
+
+    // Comprobar llave de acceso (vía URL del QR ?key=... o guardada en sesión)
+    final urlKey = DownloadHelper.getQueryParam('key') ?? DownloadHelper.getQueryParam('token');
+    final activeConfig = configNotifier.value;
+
+    if (!activeConfig.requireAccessKey) {
+      isAccessUnlockedNotifier.value = true;
+    } else if (urlKey != null &&
+        urlKey.trim().toUpperCase() == activeConfig.accessKey.trim().toUpperCase()) {
+      isAccessUnlockedNotifier.value = true;
+      await prefs.setBool(_prefKeyUnlocked, true);
+    } else {
+      final wasUnlocked = prefs.getBool(_prefKeyUnlocked) ?? false;
+      isAccessUnlockedNotifier.value = wasUnlocked;
     }
 
     // Cargar Recuerdos / Carpetas
@@ -76,8 +95,29 @@ class StorageService {
 
   Future<void> saveConfig(AppConfig newConfig) async {
     configNotifier.value = newConfig;
+    if (!newConfig.requireAccessKey) {
+      isAccessUnlockedNotifier.value = true;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKeyConfig, jsonEncode(newConfig.toJson()));
+  }
+
+  Future<bool> unlockWithKey(String enteredKey) async {
+    final activeConfig = configNotifier.value;
+    if (!activeConfig.requireAccessKey ||
+        enteredKey.trim().toUpperCase() == activeConfig.accessKey.trim().toUpperCase()) {
+      isAccessUnlockedNotifier.value = true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyUnlocked, true);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> lockAccess() async {
+    isAccessUnlockedNotifier.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKeyUnlocked, false);
   }
 
   Future<void> _saveFoldersToDisk() async {
@@ -277,3 +317,4 @@ class StorageService {
     }
   }
 }
+

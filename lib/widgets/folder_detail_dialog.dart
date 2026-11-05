@@ -53,7 +53,7 @@ class FolderDetailDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryRose.withAlpha(40),
+              color: AppTheme.sageGreen.withAlpha(40),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -65,9 +65,9 @@ class FolderDetailDialog extends StatelessWidget {
             // BARRA SUPERIOR
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppTheme.heroGradient,
-                border: const Border(
+                border: Border(
                   bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
                 ),
               ),
@@ -76,18 +76,13 @@ class FolderDetailDialog extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.softPinkBg,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryRose.withAlpha(30),
-                          blurRadius: 10,
-                        ),
-                      ],
+                      border: Border.all(color: AppTheme.pinkBorder),
                     ),
                     child: const Icon(
                       Icons.folder_open_rounded,
-                      color: AppTheme.primaryRose,
+                      color: AppTheme.sageDark,
                       size: 24,
                     ),
                   ),
@@ -103,7 +98,7 @@ class FolderDetailDialog extends StatelessWidget {
                           style: GoogleFonts.playfairDisplay(
                             fontSize: isMobile ? 18 : 24,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.deepPlum,
+                            color: AppTheme.sageDeep,
                           ),
                         ),
                         Row(
@@ -121,7 +116,7 @@ class FolderDetailDialog extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryRose,
+                                color: AppTheme.dustyPink,
                               ),
                             ),
                           ],
@@ -129,7 +124,6 @@ class FolderDetailDialog extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Botón cerrar
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded, size: 24),
@@ -149,14 +143,14 @@ class FolderDetailDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // TARJETA DE DEDICATORIA
+                    // TARJETA DE DEDICATORIA EN ROSADO SUAVE
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppTheme.softBlush,
+                        color: AppTheme.softPinkBg,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.borderLight, width: 1.2),
+                        border: Border.all(color: AppTheme.pinkBorder, width: 1.2),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +167,7 @@ class FolderDetailDialog extends StatelessWidget {
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: AppTheme.primaryDarkRose,
+                                      color: AppTheme.deepRose,
                                     ),
                                   ),
                                 ],
@@ -183,7 +177,7 @@ class FolderDetailDialog extends StatelessWidget {
                                 icon: const Icon(Icons.download_rounded, size: 16),
                                 label: const Text('Descargar Nota'),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.primaryRose,
+                                  foregroundColor: AppTheme.sageDark,
                                   textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               ),
@@ -193,7 +187,7 @@ class FolderDetailDialog extends StatelessWidget {
                           Text(
                             folder.comment.isNotEmpty
                                 ? folder.comment
-                                : '¡Muchas felicidades a Danna en sus 15 años! 🎉💖',
+                                : '¡Muchas felicidades a Danna en sus 15 años! 🌸💖',
                             style: GoogleFonts.poppins(
                               fontSize: isMobile ? 14 : 16,
                               color: AppTheme.charcoal,
@@ -213,13 +207,13 @@ class FolderDetailDialog extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: AppTheme.sageLight,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.blue.shade200),
+                            border: Border.all(color: AppTheme.sageBorder),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.add_to_drive_rounded, color: Colors.blue.shade800, size: 22),
+                              const Icon(Icons.cloud_done_rounded, color: AppTheme.sageDark, size: 22),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -230,20 +224,20 @@ class FolderDetailDialog extends StatelessWidget {
                                       style: GoogleFonts.poppins(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade900,
+                                        color: AppTheme.sageDeep,
                                       ),
                                     ),
                                     Text(
-                                      'Toca aquí para abrir la carpeta original y descargar todas en alta resolución',
+                                      'Toca aquí para abrir la carpeta original y ver todas las fotos en Google',
                                       style: GoogleFonts.poppins(
                                         fontSize: 11,
-                                        color: Colors.blue.shade700,
+                                        color: AppTheme.mutedText,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Icon(Icons.open_in_new_rounded, color: Colors.blue.shade800, size: 18),
+                              const Icon(Icons.open_in_new_rounded, color: AppTheme.sageDark, size: 18),
                             ],
                           ),
                         ),
@@ -255,14 +249,14 @@ class FolderDetailDialog extends StatelessWidget {
                     // TÍTULO DE LA GALERÍA
                     Row(
                       children: [
-                        const Icon(Icons.photo_library_rounded, size: 20, color: AppTheme.primaryRose),
+                        const Icon(Icons.photo_library_rounded, size: 20, color: AppTheme.sageGreen),
                         const SizedBox(width: 8),
                         Text(
                           'Fotos del Álbum (${folder.photos.length})',
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.deepPlum,
+                            color: AppTheme.sageDeep,
                           ),
                         ),
                         const Spacer(),

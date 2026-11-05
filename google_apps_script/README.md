@@ -37,3 +37,4 @@ Este script de Google Apps Script permite que los invitados a los 15 de Danna su
 11. **Copia esa URL** y en la app web de Danna, abre el botón de **Configuración ⚙️** y pégala.
 
 ¡Listo! A partir de ese momento, cada foto subida se guardará directamente en tu Google Drive.
+
