@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/dots_memories_danna/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Mis 15 Años - Danna. Comparte tus fotos, recuerdos y dedicatorias en Verde Salvia & Rosado.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Mis 15 Años - Danna | Dots Memories">
+  <meta property="og:description" content="¡Sube tus fotos de la fiesta de 15 de Danna con tu llave QR y déjale un hermoso mensaje!">
+  <meta property="og:type" content="website">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Danna 15 Años">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Mis 15 Años - Danna 👑🌸🌿 | Dots Memories</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #F7FAF7;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #F6FAF6 0%, #EFF5F0 50%, #FCEDF0 100%);
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    .crown {
+      font-size: 48px;
+      animation: pulse 1.5s infinite ease-in-out;
+      margin-bottom: 16px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #334A38;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #6E8B74;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(110, 139, 116, 0.25);
+      border-top-color: #E598A8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-container">
+    <div class="crown">👑🌸</div>
+    <div class="title">Mis 15 Años • Danna</div>
+    <div class="subtitle">Dots Memories • Verde Salvia & Rosado</div>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('loading-container');
+      if (loading) {
+        loading.style.opacity = '0';
+        setTimeout(function() {
+          loading.remove();
+        }, 500);
+      }
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
