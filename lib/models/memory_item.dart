@@ -28,14 +28,14 @@ class MemoryItem {
     if (bytes != null && bytes!.isNotEmpty) {
       return MemoryImage(bytes!);
     }
+    if (remoteUrl != null && remoteUrl!.isNotEmpty) {
+      return NetworkImage(remoteUrl!);
+    }
     if (base64Data != null && base64Data!.isNotEmpty) {
       try {
         final decoded = base64Decode(base64Data!);
         return MemoryImage(decoded);
       } catch (_) {}
-    }
-    if (remoteUrl != null && remoteUrl!.isNotEmpty) {
-      return NetworkImage(remoteUrl!);
     }
     // Fallback: pixel transparente
     return MemoryImage(_transparentPixel);
@@ -55,7 +55,8 @@ class MemoryItem {
       'id': id,
       'fileName': fileName,
       'remoteUrl': remoteUrl,
-      'base64Data': base64Data ?? (bytes != null ? base64Encode(bytes!) : null),
+      // Solo guardar base64 si NO hay URL remota en la nube, para no exceder la cuota de 5MB de localStorage
+      'base64Data': remoteUrl != null ? null : (base64Data ?? (bytes != null ? base64Encode(bytes!) : null)),
       'timestamp': timestamp.toIso8601String(),
       'caption': caption,
       'fileSize': fileSize,

@@ -35,3 +35,4 @@ jobs:
         run: |
           appwrite client --endpoint "https://fra.cloud.appwrite.io/v1" --project-id "danna15-memories" --key "$APPWRITE_API_KEY"
           appwrite sites create-deployment --site-id "dots-memories-danna" --code "build/web" --activate
+

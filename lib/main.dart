@@ -61,6 +61,18 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _handleManualSync() async {
+    final count = await widget.storageService.syncMemoriesFromGoogle(showLoading: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppTheme.sageDark,
+        content: Text('Sincronizados $count recuerdos desde Google Nube ☁️✨'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _onUploadAttempt() {
     if (widget.storageService.isAccessUnlocked) {
       _openUploadModal();
@@ -186,19 +198,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 slivers: [
                   // CABECERA HERO EN VERDE SALVIA Y ROSADO
                   SliverToBoxAdapter(
-                    child: EventHeader(
-                      totalPhotos: totalPhotos,
-                      totalFolders: folders.length,
-                      totalLikes: totalLikes,
-                      isAccessUnlocked: isUnlocked,
-                      activeTab: _activeTab,
-                      onTabChanged: (tab) => setState(() => _activeTab = tab),
-                      onUploadPressed: _onUploadAttempt,
-                      onSlideshowPressed: () => _openSlideshow(folders),
-                      onQrPressed: _openQrDialog,
-                      onSettingsPressed: _openSettingsDialog,
-                      onUnlockPressed: _openUnlockDialog,
-                      onGooglePhotosPressed: () => DownloadHelper.openUrl(widget.storageService.config.googlePhotosAlbumUrl),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: widget.storageService.isSyncingNotifier,
+                      builder: (context, isSyncing, _) {
+                        return EventHeader(
+                          totalPhotos: totalPhotos,
+                          totalFolders: folders.length,
+                          totalLikes: totalLikes,
+                          isAccessUnlocked: isUnlocked,
+                          activeTab: _activeTab,
+                          onTabChanged: (tab) => setState(() => _activeTab = tab),
+                          onUploadPressed: _onUploadAttempt,
+                          onSlideshowPressed: () => _openSlideshow(folders),
+                          onQrPressed: _openQrDialog,
+                          onSettingsPressed: _openSettingsDialog,
+                          onUnlockPressed: _openUnlockDialog,
+                          onGooglePhotosPressed: () => DownloadHelper.openUrl(widget.storageService.config.googlePhotosAlbumUrl),
+                          isSyncing: isSyncing,
+                          onRefreshPressed: _handleManualSync,
+                        );
+                      },
                     ),
                   ),
 

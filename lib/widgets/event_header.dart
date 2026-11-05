@@ -13,6 +13,8 @@ class EventHeader extends StatelessWidget {
   final VoidCallback onSettingsPressed;
   final VoidCallback onUnlockPressed;
   final VoidCallback onGooglePhotosPressed;
+  final VoidCallback? onRefreshPressed;
+  final bool isSyncing;
   final String activeTab;
   final ValueChanged<String> onTabChanged;
 
@@ -28,6 +30,8 @@ class EventHeader extends StatelessWidget {
     required this.onSettingsPressed,
     required this.onUnlockPressed,
     required this.onGooglePhotosPressed,
+    this.onRefreshPressed,
+    this.isSyncing = false,
     required this.activeTab,
     required this.onTabChanged,
   });
@@ -143,10 +147,19 @@ class EventHeader extends StatelessWidget {
                           ],
                         ),
 
-                        // Botones rápidos: Google Fotos, Slideshow, QR, Configuración
+                        // Botones rápidos: Actualizar, Google Fotos, Slideshow, QR, Configuración
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (onRefreshPressed != null) ...[
+                              _buildIconButton(
+                                icon: isSyncing ? Icons.sync_rounded : Icons.refresh_rounded,
+                                label: isCompact ? null : (isSyncing ? 'Sincronizando...' : 'Actualizar'),
+                                tooltip: 'Sincronizar recuerdos en tiempo real desde Google Nube',
+                                onTap: isSyncing ? null : onRefreshPressed,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
                             _buildIconButton(
                               icon: Icons.photo_library_rounded,
                               label: isCompact ? null : 'Google Fotos',
@@ -406,7 +419,7 @@ class EventHeader extends StatelessWidget {
     required IconData icon,
     String? label,
     required String tooltip,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     return Tooltip(
       message: tooltip,

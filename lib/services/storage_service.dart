@@ -37,10 +37,12 @@ class StorageService {
   final ValueNotifier<double> uploadProgressNotifier = ValueNotifier<double>(0.0);
   final ValueNotifier<String> uploadStatusNotifier = ValueNotifier<String>('');
   final ValueNotifier<bool> isAccessUnlockedNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isSyncingNotifier = ValueNotifier<bool>(false);
 
   List<MemoryFolder> get folders => foldersNotifier.value;
   AppConfig get config => configNotifier.value;
   bool get isAccessUnlocked => isAccessUnlockedNotifier.value;
+  bool get isSyncing => isSyncingNotifier.value;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -77,7 +79,7 @@ class StorageService {
       isAccessUnlockedNotifier.value = wasUnlocked;
     }
 
-    // Cargar Recuerdos / Carpetas
+    // Cargar Recuerdos / Carpetas desde caché local
     final foldersStr = prefs.getString(_prefKeyFolders);
     if (foldersStr != null && foldersStr.isNotEmpty) {
       try {
@@ -87,16 +89,19 @@ class StorageService {
             .toList();
         if (loaded.isNotEmpty) {
           foldersNotifier.value = loaded;
-          return;
         }
       } catch (e) {
         debugPrint('Error cargando carpetas guardadas: $e');
       }
     }
 
-    // Si no hay recuerdos previos, cargar datos iniciales de muestra
-    foldersNotifier.value = SampleData.getInitialMemories();
-    await _saveFoldersToDisk();
+    // Si aún no hay recuerdos, mostrar muestra inicial mientras sincroniza
+    if (foldersNotifier.value.isEmpty) {
+      foldersNotifier.value = SampleData.getInitialMemories();
+    }
+
+    // Sincronizar de inmediato con Google Fotos / Drive en segundo plano
+    syncMemoriesFromGoogle();
   }
 
   Future<void> saveConfig(AppConfig newConfig) async {
@@ -261,15 +266,121 @@ class StorageService {
 
     uploadProgressNotifier.value = 1.0;
 
-    // Insertar la nueva carpeta al inicio de la lista
+    // Insertar la nueva carpeta al inicio de la lista inmediatamente
     final updatedList = [newFolder, ...foldersNotifier.value];
     foldersNotifier.value = updatedList;
     await _saveFoldersToDisk();
+
+    // Sincronizar en segundo plano con la nube de Google
+    syncMemoriesFromGoogle();
 
     await Future.delayed(const Duration(milliseconds: 600));
     isUploadingNotifier.value = false;
     uploadStatusNotifier.value = '';
     return true;
+  }
+
+  /// Sincroniza en tiempo real las carpetas y fotos subidas a Google Drive / Fotos
+  Future<int> syncMemoriesFromGoogle({bool showLoading = false}) async {
+    final currentConfig = configNotifier.value;
+    if (!currentConfig.useGoogleBackend || currentConfig.googleScriptUrl.trim().isEmpty) {
+      return 0;
+    }
+
+    if (showLoading) {
+      isSyncingNotifier.value = true;
+    }
+
+    try {
+      final listUri = Uri.parse('${currentConfig.googleScriptUrl.trim()}?action=list');
+      final response = await http.get(listUri).timeout(const Duration(seconds: 25));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final memoriesList = data['memories'] as List<dynamic>?;
+
+        if (memoriesList != null && memoriesList.isNotEmpty) {
+          final loadedFolders = <MemoryFolder>[];
+
+          for (final item in memoriesList) {
+            final folderMap = item as Map<String, dynamic>;
+            final metaGuestName = folderMap['guestName'] as String?;
+            final cleanGuestName = (metaGuestName != null && metaGuestName.trim().isNotEmpty)
+                ? metaGuestName.trim()
+                : (folderMap['folderName'] as String? ?? 'Invitado')
+                    .replaceAll(RegExp(r'\s*\(\d{4}-\d{2}-\d{2}.*\)'), '')
+                    .trim();
+
+            // Limpiar dedicatoria si viene formateada con cabeceras
+            var rawComment = folderMap['comment'] as String? ?? '';
+            String cleanComment = rawComment;
+            if (rawComment.contains('DEDICATORIA / MENSAJE:')) {
+              final parts = rawComment.split('DEDICATORIA / MENSAJE:');
+              if (parts.length > 1) {
+                cleanComment = parts[1]
+                    .replaceAll(RegExp(r'═+'), '')
+                    .replaceAll('(Sin mensaje de texto)', '')
+                    .trim();
+              }
+            }
+
+            final rawPhotos = folderMap['photos'] as List<dynamic>? ?? [];
+            final photosItems = <MemoryItem>[];
+
+            for (int i = 0; i < rawPhotos.length; i++) {
+              final p = rawPhotos[i] as Map<String, dynamic>;
+              final pId = p['id'] as String? ?? '${folderMap['folderId']}_photo_$i';
+              final pUrl = p['url'] as String? ?? 'https://lh3.googleusercontent.com/d/$pId';
+              final pName = p['name'] as String? ?? 'foto_${i + 1}.jpg';
+
+              photosItems.add(
+                MemoryItem(
+                  id: pId,
+                  fileName: pName,
+                  remoteUrl: pUrl,
+                  timestamp: folderMap['created'] != null
+                      ? (DateTime.tryParse(folderMap['created'] as String) ?? DateTime.now())
+                      : DateTime.now(),
+                ),
+              );
+            }
+
+            // Omitir carpetas de prueba del sistema vacías
+            if (photosItems.isEmpty && (cleanGuestName.toLowerCase().contains('test') || cleanGuestName.toLowerCase().contains('prueba'))) {
+              continue;
+            }
+
+            loadedFolders.add(
+              MemoryFolder(
+                id: folderMap['folderId'] as String? ?? UniqueKey().toString(),
+                guestName: cleanGuestName.isEmpty ? 'Invitado Especial' : cleanGuestName,
+                comment: cleanComment,
+                timestamp: folderMap['created'] != null
+                    ? (DateTime.tryParse(folderMap['created'] as String) ?? DateTime.now())
+                    : DateTime.now(),
+                photos: photosItems,
+                folderUrl: folderMap['folderUrl'] as String?,
+                googleFolderId: folderMap['folderId'] as String?,
+                isSyncedToGoogle: true,
+              ),
+            );
+          }
+
+          if (loadedFolders.isNotEmpty) {
+            // Ordenar con las más recientes primero
+            loadedFolders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            foldersNotifier.value = loadedFolders;
+            await _saveFoldersToDisk();
+            return loadedFolders.length;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Aviso sincronizando recuerdos desde Google: $e');
+    } finally {
+      isSyncingNotifier.value = false;
+    }
+    return 0;
   }
 
   void toggleLike(String folderId) {

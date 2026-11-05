@@ -54,17 +54,26 @@ function doPost(e) {
     // Dar permisos de lectura
     guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
+    // Guardar metadatos en la descripción de la carpeta para lectura ultra rápida
+    try {
+      guestFolder.setDescription(JSON.stringify({
+        guestName: guestName,
+        comment: comment,
+        date: now.toISOString()
+      }));
+    } catch (e) { }
+
     // 3. Guardar el archivo de texto con la dedicatoria
     const noteContent = "═══════════════════════════════════════════════════════\r\n" +
-                        "  MIS 15 AÑOS - DANNA | RECUERDO DE INVITADO\r\n" +
-                        "═══════════════════════════════════════════════════════\r\n\r\n" +
-                        "De: " + guestName + "\r\n" +
-                        "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
-                        "Total de fotos: " + photos.length + "\r\n" +
-                        "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
-                        "DEDICATORIA / MENSAJE:\r\n" +
-                        (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
-                        "═══════════════════════════════════════════════════════";
+      "  MIS 15 AÑOS - DANNA | RECUERDO DE INVITADO\r\n" +
+      "═══════════════════════════════════════════════════════\r\n\r\n" +
+      "De: " + guestName + "\r\n" +
+      "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
+      "Total de fotos: " + photos.length + "\r\n" +
+      "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
+      "DEDICATORIA / MENSAJE:\r\n" +
+      (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
+      "═══════════════════════════════════════════════════════";
     guestFolder.createFile("Dedicatoria_" + safeGuestName + ".txt", noteContent, "text/plain");
 
     // 4. Guardar cada una de las fotos en Drive y subir al Álbum de Google Fotos
@@ -222,6 +231,17 @@ function doGet(e) {
         const files = folder.getFiles();
         const photosList = [];
         var commentText = "";
+        var guestNameText = "";
+
+        // Lectura ultra rápida desde descripción
+        try {
+          const desc = folder.getDescription();
+          if (desc) {
+            const meta = JSON.parse(desc);
+            guestNameText = meta.guestName || "";
+            commentText = meta.comment || "";
+          }
+        } catch (e) { }
 
         while (files.hasNext()) {
           const file = files.next();
@@ -233,16 +253,17 @@ function doGet(e) {
               url: "https://lh3.googleusercontent.com/d/" + file.getId(),
               viewUrl: file.getUrl()
             });
-          } else if (file.getName().indexOf("Dedicatoria") !== -1) {
+          } else if (!commentText && file.getName().indexOf("Dedicatoria") !== -1) {
             try {
               commentText = file.getBlob().getDataAsString();
-            } catch(e) {}
+            } catch (e) { }
           }
         }
 
         memories.push({
           folderId: folder.getId(),
           folderName: folder.getName(),
+          guestName: guestNameText,
           folderUrl: folder.getUrl(),
           comment: commentText,
           photosCount: photosList.length,
