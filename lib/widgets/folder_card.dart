@@ -394,12 +394,20 @@ class FolderCard extends StatelessWidget {
 
   Widget _buildImageTile(ImageProvider provider) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.sageLight,
-        image: DecorationImage(
-          image: provider,
-          fit: BoxFit.cover,
-        ),
+      color: AppTheme.sageLight,
+      child: Image(
+        image: provider,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: AppTheme.softPinkBg,
+            child: const Center(
+              child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 28),
+            ),
+          );
+        },
       ),
     );
   }

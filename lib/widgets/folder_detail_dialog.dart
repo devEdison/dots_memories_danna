@@ -344,6 +344,14 @@ class FolderDetailDialog extends StatelessWidget {
                                   Image(
                                     image: photo.imageProvider,
                                     fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: AppTheme.softPinkBg,
+                                        child: const Center(
+                                          child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   // Gradiente inferior con hover
                                   Positioned(

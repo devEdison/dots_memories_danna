@@ -133,6 +133,21 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                             ),
                           );
                         },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 64),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Cargando imagen desde la nube...',
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),

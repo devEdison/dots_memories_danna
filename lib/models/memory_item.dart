@@ -29,7 +29,10 @@ class MemoryItem {
       return MemoryImage(bytes!);
     }
     if (remoteUrl != null && remoteUrl!.isNotEmpty) {
-      return NetworkImage(remoteUrl!);
+      return NetworkImage(
+        remoteUrl!,
+        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+      );
     }
     if (base64Data != null && base64Data!.isNotEmpty) {
       try {

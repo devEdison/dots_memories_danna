@@ -455,6 +455,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 Image(
                                                   image: item.photo.imageProvider,
                                                   fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Container(
+                                                      color: AppTheme.softPinkBg,
+                                                      child: const Center(
+                                                        child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                                      ),
+                                                    );
+                                                  },
                                                 ),
                                                 Positioned(
                                                   bottom: 0,

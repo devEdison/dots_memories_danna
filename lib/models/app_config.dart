@@ -8,6 +8,9 @@ class AppConfig {
   bool requireAccessKey;
   String googlePhotosAlbumUrl;
   String googlePhotosAlbumId;
+  String appwriteEndpoint;
+  String appwriteProjectId;
+  String appwriteBucketId;
 
   AppConfig({
     this.googleScriptUrl =
@@ -21,6 +24,9 @@ class AppConfig {
     this.googlePhotosAlbumUrl =
         'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
     this.googlePhotosAlbumId = 'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+    this.appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1',
+    this.appwriteProjectId = 'danna15-memories',
+    this.appwriteBucketId = 'photos',
   });
 
   Map<String, dynamic> toJson() {
@@ -34,6 +40,9 @@ class AppConfig {
       'requireAccessKey': requireAccessKey,
       'googlePhotosAlbumUrl': googlePhotosAlbumUrl,
       'googlePhotosAlbumId': googlePhotosAlbumId,
+      'appwriteEndpoint': appwriteEndpoint,
+      'appwriteProjectId': appwriteProjectId,
+      'appwriteBucketId': appwriteBucketId,
     };
   }
 
@@ -55,6 +64,9 @@ class AppConfig {
           'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
       googlePhotosAlbumId: json['googlePhotosAlbumId'] as String? ??
           'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+      appwriteEndpoint: json['appwriteEndpoint'] as String? ?? 'https://fra.cloud.appwrite.io/v1',
+      appwriteProjectId: json['appwriteProjectId'] as String? ?? 'danna15-memories',
+      appwriteBucketId: json['appwriteBucketId'] as String? ?? 'photos',
     );
   }
 }

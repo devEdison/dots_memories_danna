@@ -141,6 +141,7 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog> {
                   Image(
                     image: currentItem.photo.imageProvider,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(color: Colors.black),
                   ),
                   Container(
                     color: Colors.black.withAlpha(160),
@@ -150,6 +151,21 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog> {
                     child: Image(
                       image: currentItem.photo.imageProvider,
                       fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 72),
+                              const SizedBox(height: 12),
+                              Text(
+                                currentItem.folder.guestName,
+                                style: GoogleFonts.poppins(color: Colors.white, fontSize: 18),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

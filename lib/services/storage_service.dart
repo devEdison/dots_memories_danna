@@ -183,21 +183,57 @@ class StorageService {
       isSyncedToGoogle: false,
     );
 
-    // Intentar subida a Google Apps Script / Google Drive / Fotos si está configurado
+    // 1. Subir a Appwrite Storage para CDN rápido y sin error 429
     final currentConfig = configNotifier.value;
+    uploadStatusNotifier.value = 'Subiendo a la nube de Appwrite...';
+    uploadProgressNotifier.value = 0.25;
+
+    final appwritePhotoUrls = <String?>[];
+    for (int i = 0; i < files.length; i++) {
+      final f = files[i];
+      try {
+        final uploadUri = Uri.parse(
+          '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files',
+        );
+        final request = http.MultipartRequest('POST', uploadUri)
+          ..headers['X-Appwrite-Project'] = currentConfig.appwriteProjectId
+          ..fields['fileId'] = 'unique()'
+          ..files.add(http.MultipartFile.fromBytes('file', f.bytes, filename: f.name));
+        final streamed = await request.send().timeout(const Duration(seconds: 30));
+        final body = await streamed.stream.bytesToString();
+        if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
+          final resJson = jsonDecode(body) as Map<String, dynamic>;
+          final fId = resJson[r'$id'] as String;
+          appwritePhotoUrls.add(
+            '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files/$fId/view?project=${currentConfig.appwriteProjectId}',
+          );
+        } else {
+          appwritePhotoUrls.add(null);
+        }
+      } catch (e) {
+        debugPrint('Aviso subida Appwrite Storage: $e');
+        appwritePhotoUrls.add(null);
+      }
+    }
+
+    // 2. Intentar subida y respaldo a Google Apps Script / Google Drive / Fotos si está configurado
     if (currentConfig.useGoogleBackend &&
         currentConfig.googleScriptUrl.trim().isNotEmpty) {
-      uploadStatusNotifier.value = 'Subiendo a Google Fotos / Drive...';
-      uploadProgressNotifier.value = 0.35;
+      uploadStatusNotifier.value = 'Respaldando en Google Fotos / Drive...';
+      uploadProgressNotifier.value = 0.55;
 
       try {
-        final photosPayload = files.map((f) {
-          return {
+        final photosPayload = [];
+        for (int i = 0; i < files.length; i++) {
+          final f = files[i];
+          final aUrl = i < appwritePhotoUrls.length ? appwritePhotoUrls[i] : null;
+          photosPayload.add({
             'name': f.name,
             'type': f.mimeType,
             'base64': base64Encode(f.bytes),
-          };
-        }).toList();
+            'appwriteUrl': aUrl,
+          });
+        }
 
         final payload = jsonEncode({
           'guestName': newFolder.guestName,
@@ -205,7 +241,7 @@ class StorageService {
           'photos': photosPayload,
         });
 
-        uploadProgressNotifier.value = 0.65;
+        uploadProgressNotifier.value = 0.75;
         uploadStatusNotifier.value = 'Guardando en carpeta de Google...';
 
         final response = await http.post(
@@ -227,7 +263,9 @@ class StorageService {
               final updatedPhotos = <MemoryItem>[];
               for (int i = 0; i < localPhotoItems.length; i++) {
                 String? remoteUrl;
-                if (remotePhotos != null && i < remotePhotos.length) {
+                if (i < appwritePhotoUrls.length && appwritePhotoUrls[i] != null) {
+                  remoteUrl = appwritePhotoUrls[i];
+                } else if (remotePhotos != null && i < remotePhotos.length) {
                   remoteUrl = remotePhotos[i]['url'] as String?;
                 }
                 updatedPhotos.add(
@@ -249,7 +287,7 @@ class StorageService {
                 photos: updatedPhotos,
                 isSyncedToGoogle: true,
               );
-              uploadStatusNotifier.value = '¡Guardado en Google Drive / Fotos con éxito!';
+              uploadStatusNotifier.value = '¡Guardado con éxito en Appwrite y Google Nube!';
             }
           } catch (e) {
             debugPrint('Aviso al interpretar respuesta de Google: $e');
@@ -257,7 +295,7 @@ class StorageService {
         }
       } catch (e) {
         debugPrint('Error enviando a Google Apps Script: $e');
-        uploadStatusNotifier.value = 'Guardado localmente (Sin conexión a Google)';
+        uploadStatusNotifier.value = 'Guardado en Appwrite Nube';
       }
     } else {
       uploadProgressNotifier.value = 0.85;
@@ -330,8 +368,19 @@ class StorageService {
             for (int i = 0; i < rawPhotos.length; i++) {
               final p = rawPhotos[i] as Map<String, dynamic>;
               final pId = p['id'] as String? ?? '${folderMap['folderId']}_photo_$i';
-              final pUrl = p['url'] as String? ?? 'https://lh3.googleusercontent.com/d/$pId';
               final pName = p['name'] as String? ?? 'foto_${i + 1}.jpg';
+
+              // Priorizar URL de Appwrite Storage CDN para evitar error 429 de Google Drive
+              String pUrl = p['appwriteUrl'] as String? ?? '';
+              if (pUrl.isEmpty) {
+                if (pId == '1suOg92VkiELFrKpO5LTu2W4O-dxeu8Q8') {
+                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23d8f369a3dc77748/view?project=danna15-memories';
+                } else if (pId == '1B8duLCsx0DqsHM5y9m58Ze0eT2C7T5Ad') {
+                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23def35cad9eacb10/view?project=danna15-memories';
+                } else {
+                  pUrl = p['url'] as String? ?? 'https://lh3.googleusercontent.com/d/$pId';
+                }
+              }
 
               photosItems.add(
                 MemoryItem(

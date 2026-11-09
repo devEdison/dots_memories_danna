@@ -108,14 +108,25 @@ function doPost(e) {
         savedPhotos.push({
           name: fileName,
           id: fileId,
+          appwriteUrl: item.appwriteUrl || null,
           googlePhotosId: googlePhotosId,
-          url: directUrl,
+          url: item.appwriteUrl || directUrl,
           viewUrl: viewUrl
         });
       } catch (photoErr) {
         Logger.log("Error guardando foto " + i + ": " + photoErr.toString());
       }
     }
+
+    // Actualizar metadatos de la carpeta con fotos para lectura instantánea
+    try {
+      guestFolder.setDescription(JSON.stringify({
+        guestName: guestName,
+        comment: comment,
+        photos: savedPhotos,
+        date: now.toISOString()
+      }));
+    } catch (e) { }
 
     // 5. Retornar respuesta exitosa con la URL del álbum de Google Fotos
     return responseJSON({
@@ -233,6 +244,8 @@ function doGet(e) {
         var commentText = "";
         var guestNameText = "";
 
+        var cachedPhotos = null;
+
         // Lectura ultra rápida desde descripción
         try {
           const desc = folder.getDescription();
@@ -240,23 +253,30 @@ function doGet(e) {
             const meta = JSON.parse(desc);
             guestNameText = meta.guestName || "";
             commentText = meta.comment || "";
+            if (meta.photos && Array.isArray(meta.photos) && meta.photos.length > 0) {
+              cachedPhotos = meta.photos;
+            }
           }
         } catch (e) { }
 
-        while (files.hasNext()) {
-          const file = files.next();
-          const mime = file.getMimeType();
-          if (mime.indexOf("image") !== -1) {
-            photosList.push({
-              name: file.getName(),
-              id: file.getId(),
-              url: "https://lh3.googleusercontent.com/d/" + file.getId(),
-              viewUrl: file.getUrl()
-            });
-          } else if (!commentText && file.getName().indexOf("Dedicatoria") !== -1) {
-            try {
-              commentText = file.getBlob().getDataAsString();
-            } catch (e) { }
+        if (cachedPhotos && cachedPhotos.length > 0) {
+          photosList = cachedPhotos;
+        } else {
+          while (files.hasNext()) {
+            const file = files.next();
+            const mime = file.getMimeType();
+            if (mime.indexOf("image") !== -1) {
+              photosList.push({
+                name: file.getName(),
+                id: file.getId(),
+                url: "https://lh3.googleusercontent.com/d/" + file.getId(),
+                viewUrl: file.getUrl()
+              });
+            } else if (!commentText && file.getName().indexOf("Dedicatoria") !== -1) {
+              try {
+                commentText = file.getBlob().getDataAsString();
+              } catch (e) { }
+            }
           }
         }
 
