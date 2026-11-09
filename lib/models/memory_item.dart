@@ -11,6 +11,7 @@ class MemoryItem {
   final DateTime timestamp;
   final String? caption;
   final int fileSize;
+  final String? mimeType;
 
   MemoryItem({
     required this.id,
@@ -21,7 +22,23 @@ class MemoryItem {
     required this.timestamp,
     this.caption,
     this.fileSize = 0,
+    this.mimeType,
   });
+
+  /// Determina si el elemento es un video
+  bool get isVideo {
+    if (mimeType != null && mimeType!.toLowerCase().startsWith('video/')) {
+      return true;
+    }
+    final lower = fileName.toLowerCase();
+    return lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.webm') ||
+        lower.endsWith('.avi') ||
+        lower.endsWith('.mkv') ||
+        lower.endsWith('.m4v') ||
+        lower.endsWith('.3gp');
+  }
 
   /// Retorna un ImageProvider adecuado según los datos disponibles
   ImageProvider get imageProvider {
@@ -63,6 +80,7 @@ class MemoryItem {
       'timestamp': timestamp.toIso8601String(),
       'caption': caption,
       'fileSize': fileSize,
+      'mimeType': mimeType,
     };
   }
 
@@ -86,6 +104,7 @@ class MemoryItem {
           : DateTime.now(),
       caption: json['caption'] as String?,
       fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
+      mimeType: json['mimeType'] as String?,
     );
   }
 }

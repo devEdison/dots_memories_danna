@@ -281,7 +281,7 @@ function doGet(e) {
             try {
               commentText = f.getBlob().getDataAsString();
             } catch (readErr) { }
-          } else if (mime.startsWith("image/") || name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)) {
+          } else if (mime.startsWith("image/") || mime.startsWith("video/") || name.match(/\.(jpg|jpeg|png|webp|heic|heif|mp4|mov|webm|avi|mkv)$/i)) {
             photosList.push({
               name: name,
               id: f.getId(),

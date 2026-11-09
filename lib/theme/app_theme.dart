@@ -21,6 +21,7 @@ class AppTheme {
   static const Color charcoal = Color(0xFF263328);
   static const Color mutedText = Color(0xFF5D7061);
   static const Color cardBg = Color(0xFFFFFFFF);
+  static const Color scaffoldBg = Color(0xFFF7FBF8);
   static const Color borderLight = Color(0xFFE4ECE5);
 
   // Gradientes armónicos Verde Salvia & Rosado

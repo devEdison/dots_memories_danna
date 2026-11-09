@@ -20,6 +20,16 @@ class SelectedFile {
     required this.size,
     this.mimeType = 'image/jpeg',
   });
+
+  bool get isVideo =>
+      mimeType.toLowerCase().startsWith('video/') ||
+      name.toLowerCase().endsWith('.mp4') ||
+      name.toLowerCase().endsWith('.mov') ||
+      name.toLowerCase().endsWith('.webm') ||
+      name.toLowerCase().endsWith('.avi') ||
+      name.toLowerCase().endsWith('.mkv') ||
+      name.toLowerCase().endsWith('.m4v') ||
+      name.toLowerCase().endsWith('.3gp');
 }
 
 class StorageService {
@@ -30,6 +40,8 @@ class StorageService {
   static const String _prefKeyFolders = 'dots_memories_folders_v1';
   static const String _prefKeyConfig = 'dots_memories_config_v1';
   static const String _prefKeyUnlocked = 'dots_memories_unlocked_v1';
+  static const String _prefKeyMyFolders = 'dots_my_folder_ids_v1';
+  static const String _prefKeyMyGuestName = 'dots_my_guest_name_v1';
 
   final ValueNotifier<List<MemoryFolder>> foldersNotifier = ValueNotifier<List<MemoryFolder>>([]);
   final ValueNotifier<AppConfig> configNotifier = ValueNotifier<AppConfig>(AppConfig());
@@ -39,10 +51,30 @@ class StorageService {
   final ValueNotifier<bool> isAccessUnlockedNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isSyncingNotifier = ValueNotifier<bool>(false);
 
+  // Registro de recuerdos del invitado en este dispositivo
+  final ValueNotifier<List<String>> myFolderIdsNotifier = ValueNotifier<List<String>>([]);
+  final ValueNotifier<String> myGuestNameNotifier = ValueNotifier<String>('');
+
   List<MemoryFolder> get folders => foldersNotifier.value;
   AppConfig get config => configNotifier.value;
   bool get isAccessUnlocked => isAccessUnlockedNotifier.value;
   bool get isSyncing => isSyncingNotifier.value;
+
+  /// Retorna ÚNICAMENTE las carpetas que pertenecen al invitado de este dispositivo
+  List<MemoryFolder> get myFolders {
+    final myIds = myFolderIdsNotifier.value;
+    final guestName = myGuestNameNotifier.value.trim().toLowerCase();
+
+    return foldersNotifier.value.where((f) {
+      if (myIds.contains(f.id) || (f.googleFolderId != null && myIds.contains(f.googleFolderId))) {
+        return true;
+      }
+      if (guestName.isNotEmpty && f.guestName.trim().toLowerCase() == guestName) {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -63,6 +95,12 @@ class StorageService {
         debugPrint('Error decodificando configuración: $e');
       }
     }
+
+    // Cargar carpetas y nombre de invitado de este dispositivo
+    final savedMyIds = prefs.getStringList(_prefKeyMyFolders) ?? [];
+    myFolderIdsNotifier.value = savedMyIds;
+    final savedGuestName = prefs.getString(_prefKeyMyGuestName) ?? '';
+    myGuestNameNotifier.value = savedGuestName;
 
     // Comprobar llave de acceso (vía URL del QR ?key=... o guardada en sesión)
     final urlKey = DownloadHelper.getQueryParam('key') ?? DownloadHelper.getQueryParam('token');
@@ -131,19 +169,35 @@ class StorageService {
     await prefs.setBool(_prefKeyUnlocked, false);
   }
 
+  Future<void> setMyGuestName(String name) async {
+    myGuestNameNotifier.value = name.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKeyMyGuestName, name.trim());
+  }
+
   Future<void> _saveFoldersToDisk() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Para optimizar el tamaño en SharedPreferences de web (localStorage / IndexedDB),
-      // guardamos los datos asegurando que no exceda el límite del navegador.
       final jsonList = foldersNotifier.value.map((f) => f.toJson()).toList();
       await prefs.setString(_prefKeyFolders, jsonEncode(jsonList));
     } catch (e) {
-      debugPrint('Aviso al persistir en almacenamiento local: $e');
+      debugPrint('Aviso guardando en almacenamiento local: $e');
     }
   }
 
-  /// Sube un conjunto de fotos y dedicatoria
+  Future<void> _saveMyFoldersToDisk() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_prefKeyMyFolders, myFolderIdsNotifier.value);
+      if (myGuestNameNotifier.value.isNotEmpty) {
+        await prefs.setString(_prefKeyMyGuestName, myGuestNameNotifier.value);
+      }
+    } catch (e) {
+      debugPrint('Aviso guardando identificador de invitado: $e');
+    }
+  }
+
+  /// Sube fotos y videos seleccionados por el invitado a Appwrite Storage y Google Drive
   Future<bool> uploadMemories({
     required String guestName,
     required String comment,
@@ -153,7 +207,16 @@ class StorageService {
 
     isUploadingNotifier.value = true;
     uploadProgressNotifier.value = 0.1;
-    uploadStatusNotifier.value = 'Procesando ${files.length} fotos...';
+    final totalFiles = files.length;
+    final videoCount = files.where((f) => f.isVideo).length;
+    final photoCount = totalFiles - videoCount;
+
+    String typeSummary = '$photoCount fotos';
+    if (videoCount > 0) {
+      typeSummary = photoCount > 0 ? '$photoCount fotos y $videoCount videos' : '$videoCount videos';
+    }
+
+    uploadStatusNotifier.value = 'Procesando $typeSummary...';
 
     final now = DateTime.now();
     final folderId = 'folder_${now.millisecondsSinceEpoch}';
@@ -164,12 +227,13 @@ class StorageService {
       final f = files[i];
       localPhotoItems.add(
         MemoryItem(
-          id: '${folderId}_photo_$i',
+          id: '${folderId}_media_$i',
           fileName: f.name,
           bytes: f.bytes,
-          base64Data: base64Encode(f.bytes),
+          base64Data: f.isVideo ? null : base64Encode(f.bytes),
           timestamp: now,
           fileSize: f.size,
+          mimeType: f.mimeType,
         ),
       );
     }
@@ -185,7 +249,7 @@ class StorageService {
 
     // 1. Subir a Appwrite Storage para CDN rápido y sin error 429
     final currentConfig = configNotifier.value;
-    uploadStatusNotifier.value = 'Subiendo a la nube de Appwrite...';
+    uploadStatusNotifier.value = 'Subiendo a Appwrite Storage CDN...';
     uploadProgressNotifier.value = 0.25;
 
     final appwritePhotoUrls = <String?>[];
@@ -199,7 +263,7 @@ class StorageService {
           ..headers['X-Appwrite-Project'] = currentConfig.appwriteProjectId
           ..fields['fileId'] = 'unique()'
           ..files.add(http.MultipartFile.fromBytes('file', f.bytes, filename: f.name));
-        final streamed = await request.send().timeout(const Duration(seconds: 30));
+        final streamed = await request.send().timeout(const Duration(seconds: 45));
         final body = await streamed.stream.bytesToString();
         if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
           final resJson = jsonDecode(body) as Map<String, dynamic>;
@@ -216,7 +280,7 @@ class StorageService {
       }
     }
 
-    // 2. Intentar subida y respaldo a Google Apps Script / Google Drive / Fotos si está configurado
+    // 2. Intentar subida y respaldo a Google Apps Script / Google Drive si está configurado
     if (currentConfig.useGoogleBackend &&
         currentConfig.googleScriptUrl.trim().isNotEmpty) {
       uploadStatusNotifier.value = 'Respaldando en Google Fotos / Drive...';
@@ -242,13 +306,13 @@ class StorageService {
         });
 
         uploadProgressNotifier.value = 0.75;
-        uploadStatusNotifier.value = 'Guardando en carpeta de Google...';
+        uploadStatusNotifier.value = 'Guardando dedicatoria y archivos...';
 
         final response = await http.post(
           Uri.parse(currentConfig.googleScriptUrl.trim()),
           body: payload,
           headers: {'Content-Type': 'text/plain'},
-        ).timeout(const Duration(seconds: 45));
+        ).timeout(const Duration(seconds: 55));
 
         uploadProgressNotifier.value = 0.90;
 
@@ -277,6 +341,7 @@ class StorageService {
                     base64Data: localPhotoItems[i].base64Data,
                     timestamp: localPhotoItems[i].timestamp,
                     fileSize: localPhotoItems[i].fileSize,
+                    mimeType: localPhotoItems[i].mimeType,
                   ),
                 );
               }
@@ -299,7 +364,7 @@ class StorageService {
       }
     } else {
       uploadProgressNotifier.value = 0.85;
-      uploadStatusNotifier.value = 'Guardando en galería local...';
+      uploadStatusNotifier.value = 'Guardando en galería...';
     }
 
     uploadProgressNotifier.value = 1.0;
@@ -308,6 +373,17 @@ class StorageService {
     final updatedList = [newFolder, ...foldersNotifier.value];
     foldersNotifier.value = updatedList;
     await _saveFoldersToDisk();
+
+    // Registrar como carpeta de este invitado en su espacio privado
+    final currentMyIds = List<String>.from(myFolderIdsNotifier.value);
+    if (!currentMyIds.contains(newFolder.id)) {
+      currentMyIds.insert(0, newFolder.id);
+      myFolderIdsNotifier.value = currentMyIds;
+    }
+    if (newFolder.guestName.isNotEmpty) {
+      myGuestNameNotifier.value = newFolder.guestName;
+    }
+    await _saveMyFoldersToDisk();
 
     // Sincronizar en segundo plano con la nube de Google
     syncMemoriesFromGoogle();
@@ -368,7 +444,7 @@ class StorageService {
             for (int i = 0; i < rawPhotos.length; i++) {
               final p = rawPhotos[i] as Map<String, dynamic>;
               final pId = p['id'] as String? ?? '${folderMap['folderId']}_photo_$i';
-              final pName = p['name'] as String? ?? 'foto_${i + 1}.jpg';
+              final pName = p['name'] as String? ?? 'archivo_${i + 1}.jpg';
 
               // Priorizar URL de Appwrite Storage CDN para evitar error 429 de Google Drive
               String pUrl = p['appwriteUrl'] as String? ?? '';
@@ -384,11 +460,18 @@ class StorageService {
                 }
               }
 
+              final isVid = pName.toLowerCase().endsWith('.mp4') ||
+                  pName.toLowerCase().endsWith('.mov') ||
+                  pName.toLowerCase().endsWith('.webm') ||
+                  pName.toLowerCase().endsWith('.avi') ||
+                  pName.toLowerCase().endsWith('.mkv');
+
               photosItems.add(
                 MemoryItem(
                   id: pId,
                   fileName: pName,
                   remoteUrl: pUrl,
+                  mimeType: isVid ? 'video/mp4' : 'image/jpeg',
                   timestamp: folderMap['created'] != null
                       ? (DateTime.tryParse(folderMap['created'] as String) ?? DateTime.now())
                       : DateTime.now(),
@@ -485,4 +568,3 @@ class StorageService {
     }
   }
 }
-

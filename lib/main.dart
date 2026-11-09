@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'models/memory_folder.dart';
 import 'models/memory_item.dart';
+import 'services/appwrite_auth_service.dart';
 import 'services/download_helper.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
@@ -10,25 +11,40 @@ import 'widgets/access_key_dialog.dart';
 import 'widgets/event_header.dart';
 import 'widgets/folder_card.dart';
 import 'widgets/folder_detail_dialog.dart';
+import 'widgets/gatekeeper_screen.dart';
+import 'widgets/guest_portal_screen.dart';
 import 'widgets/live_slideshow_dialog.dart';
 import 'widgets/photo_lightbox.dart';
 import 'widgets/qr_code_dialog.dart';
 import 'widgets/settings_dialog.dart';
 import 'widgets/upload_modal.dart';
+import 'widgets/video_player_dialog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
+
   final storageService = StorageService();
   await storageService.init();
 
-  runApp(DotsMemoriesApp(storageService: storageService));
+  final authService = AppwriteAuthService();
+  await authService.init();
+
+  runApp(DotsMemoriesApp(
+    storageService: storageService,
+    authService: authService,
+  ));
 }
 
 class DotsMemoriesApp extends StatelessWidget {
   final StorageService storageService;
+  final AppwriteAuthService authService;
 
-  const DotsMemoriesApp({super.key, required this.storageService});
+  const DotsMemoriesApp({
+    super.key,
+    required this.storageService,
+    required this.authService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +52,50 @@ class DotsMemoriesApp extends StatelessWidget {
       title: 'Mis 15 Años - Danna | Dots Memories',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: HomeScreen(storageService: storageService),
+      home: ValueListenableBuilder<bool>(
+        valueListenable: authService.isLoggedInNotifier,
+        builder: (context, isLoggedIn, _) {
+          // 1. Si ha iniciado sesión con Appwrite -> PAGINA PRINCIPAL COMPLETA
+          if (isLoggedIn) {
+            return HomeScreen(
+              storageService: storageService,
+              authService: authService,
+            );
+          }
+
+          // 2. Si no es admin pero tiene QR / clave de invitado -> ESPACIO AISLADO DE INVITADO
+          return ValueListenableBuilder<bool>(
+            valueListenable: storageService.isAccessUnlockedNotifier,
+            builder: (context, isUnlocked, _) {
+              if (isUnlocked) {
+                return GuestPortalScreen(
+                  storageService: storageService,
+                  authService: authService,
+                );
+              }
+
+              // 3. Bloqueado: nadie puede ver la página principal sin QR o sin login de Appwrite
+              return GatekeeperScreen(
+                storageService: storageService,
+                authService: authService,
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
   final StorageService storageService;
+  final AppwriteAuthService authService;
 
-  const HomeScreen({super.key, required this.storageService});
+  const HomeScreen({
+    super.key,
+    required this.storageService,
+    required this.authService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -74,17 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onUploadAttempt() {
-    if (widget.storageService.isAccessUnlocked) {
-      _openUploadModal();
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) => AccessKeyDialog(
-          storageService: widget.storageService,
-          onUnlocked: _openUploadModal,
-        ),
-      );
-    }
+    _openUploadModal();
   }
 
   void _openUnlockDialog() {
@@ -141,6 +182,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openLightbox(List<MemoryItem> photos, int initialIndex, [MemoryFolder? folder]) {
+    final photo = photos[initialIndex];
+    if (photo.isVideo) {
+      showDialog(
+        context: context,
+        builder: (context) => VideoPlayerDialog(
+          item: photo,
+          guestName: folder?.guestName,
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       useSafeArea: false,
@@ -196,6 +248,69 @@ class _HomeScreenState extends State<HomeScreen> {
             return Scaffold(
               body: CustomScrollView(
                 slivers: [
+                  // BARRA SUPERIOR DE ANFITRIÓN AUTENTICADO CON APPWRITE
+                  SliverToBoxAdapter(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.sageDeep,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                                child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 16),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Sesión Anfitrión: ${widget.authService.currentUser?.name ?? "Familia Danna"} (${widget.authService.currentUser?.email ?? "admin@danna15.com"})',
+                                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => GuestPortalScreen(
+                                        storageService: widget.storageService,
+                                        authService: widget.authService,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.qr_code_rounded, size: 14),
+                                label: Text(isMobile ? 'QR' : 'Ver como Invitado (QR)'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(color: Colors.white54),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: () => widget.authService.logout(config: widget.storageService.config),
+                                icon: const Icon(Icons.logout_rounded, size: 14),
+                                label: Text(isMobile ? '' : 'Cerrar Sesión'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFFFD1DC),
+                                  side: const BorderSide(color: Color(0xFFFFD1DC)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // CABECERA HERO EN VERDE SALVIA Y ROSADO
                   SliverToBoxAdapter(
                     child: ValueListenableBuilder<bool>(
@@ -221,67 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // AVISO VISUAL SI EL ACCESO ESTÁ BLOQUEADO (SIN LLAVE QR)
-                  if (!isUnlocked)
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 1200),
-                          margin: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 16 : 36,
-                            vertical: 12,
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.softPinkBg,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.pinkBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.dustyPink),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Subida exclusiva para invitados',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.sageDeep,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Escanea el código QR que se encuentra en las mesas de la fiesta para activar el botón de subida.',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: AppTheme.mutedText,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _openUnlockDialog,
-                                style: TextButton.styleFrom(foregroundColor: AppTheme.deepRose),
-                                child: const Text('Ingresar Clave'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // BARRA DE BÚSQUEDA Y FILTROS
+                  // BARRA DE BÚSQUEDA Y CONTROLES
                   SliverToBoxAdapter(
                     child: Center(
                       child: Container(
@@ -292,85 +347,107 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Row(
                           children: [
+                            // Campo de búsqueda en vivo
                             Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                                decoration: InputDecoration(
-                                  hintText: 'Buscar por invitado o dedicatoria...',
-                                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.sageGreen),
-                                  suffixIcon: _searchQuery.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear_rounded, size: 18),
-                                          onPressed: () {
-                                            _searchController.clear();
-                                            setState(() => _searchQuery = '');
-                                          },
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ),
-                            if (!isMobile) ...[
-                              const SizedBox(width: 14),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppTheme.sageBorder),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.sort_rounded, size: 18, color: AppTheme.sageGreen),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Más recientes primero',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppTheme.sageDeep,
-                                      ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppTheme.borderLight, width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.sageGreen.withAlpha(20),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (value) => setState(() => _searchQuery = value),
+                                  decoration: InputDecoration(
+                                    hintText: _activeTab == 'folders'
+                                        ? 'Buscar invitado o dedicatoria...'
+                                        : 'Buscar fotos por invitado o mensaje...',
+                                    hintStyle: GoogleFonts.poppins(color: AppTheme.mutedText, fontSize: 13),
+                                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.sageGreen),
+                                    suffixIcon: _searchQuery.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear_rounded, size: 18),
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              setState(() => _searchQuery = '');
+                                            },
+                                          )
+                                        : null,
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  ),
+                                ),
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
 
-                  // CONTENIDO DE LA PESTAÑA SELECCIONADA
+                  // VISTA 1: CARPETAS DE INVITADOS (MODO DEFAULT)
                   if (_activeTab == 'folders') ...[
                     if (filteredFolders.isEmpty)
-                      SliverToBoxAdapter(
-                        child: _buildEmptyState(
-                          icon: Icons.folder_open_rounded,
-                          title: 'No se encontraron carpetas',
-                          subtitle: _searchQuery.isNotEmpty
-                              ? 'Prueba con otra palabra en la búsqueda'
-                              : '¡Sé el primero en subir fotos para los 15 de Danna!',
-                          onAction: _onUploadAttempt,
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.softPinkBg,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Text('🌸', style: TextStyle(fontSize: 40)),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? 'Aún no hay recuerdos subidos'
+                                    : 'No se encontraron recuerdos para "$_searchQuery"',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.sageDeep,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? '¡Comparte el QR con los invitados para que comiencen a subir fotos!'
+                                    : 'Intenta con otro término de búsqueda',
+                                style: GoogleFonts.poppins(color: AppTheme.mutedText, fontSize: 13),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     else
                       SliverPadding(
                         padding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 16 : 36,
-                          vertical: 8,
+                          vertical: 12,
                         ),
                         sliver: SliverToBoxAdapter(
                           child: Center(
-                            child: Container(
+                            child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1200),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  int crossAxisCount = 1;
-                                  if (constraints.maxWidth > 950) {
-                                    crossAxisCount = 3;
-                                  } else if (constraints.maxWidth > 600) {
+                                  final width = constraints.maxWidth;
+                                  int crossAxisCount = 3;
+                                  if (width < 600) {
+                                    crossAxisCount = 1;
+                                  } else if (width < 960) {
                                     crossAxisCount = 2;
                                   }
 
@@ -382,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       crossAxisCount: crossAxisCount,
                                       crossAxisSpacing: 20,
                                       mainAxisSpacing: 20,
-                                      childAspectRatio: isMobile ? 0.90 : 0.85,
+                                      childAspectRatio: 0.82,
                                     ),
                                     itemBuilder: (context, index) {
                                       final folder = filteredFolders[index];
@@ -399,34 +476,49 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                  ] else ...[
-                    // PESTAÑA: MURO DE FOTOS GENERAL
+                  ],
+
+                  // VISTA 2: MURO DE FOTOS GENERAL (WALL)
+                  if (_activeTab == 'wall') ...[
                     if (filteredWall.isEmpty)
-                      SliverToBoxAdapter(
-                        child: _buildEmptyState(
-                          icon: Icons.photo_library_outlined,
-                          title: 'No hay fotos en el muro',
-                          subtitle: 'Sube las primeras fotos de la fiesta',
-                          onAction: _onUploadAttempt,
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.photo_library_outlined, size: 50, color: AppTheme.dustyPink),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No hay fotos en el muro',
+                                style: GoogleFonts.playfairDisplay(fontSize: 20, color: AppTheme.sageDeep),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     else
                       SliverPadding(
                         padding: EdgeInsets.symmetric(
                           horizontal: isMobile ? 16 : 36,
-                          vertical: 8,
+                          vertical: 12,
                         ),
                         sliver: SliverToBoxAdapter(
                           child: Center(
-                            child: Container(
+                            child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1200),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  int crossAxisCount = 2;
-                                  if (constraints.maxWidth > 1000) {
-                                    crossAxisCount = 4;
-                                  } else if (constraints.maxWidth > 650) {
+                                  final width = constraints.maxWidth;
+                                  int crossAxisCount = 4;
+                                  if (width < 480) {
+                                    crossAxisCount = 2;
+                                  } else if (width < 768) {
                                     crossAxisCount = 3;
+                                  } else if (width < 1100) {
+                                    crossAxisCount = 4;
+                                  } else {
+                                    crossAxisCount = 5;
                                   }
 
                                   final allPhotos = filteredWall.map((e) => e.photo).toList();
@@ -452,18 +544,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                             child: Stack(
                                               fit: StackFit.expand,
                                               children: [
-                                                Image(
-                                                  image: item.photo.imageProvider,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Container(
-                                                      color: AppTheme.softPinkBg,
-                                                      child: const Center(
-                                                        child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                                item.photo.isVideo
+                                                    ? Container(
+                                                        color: const Color(0xFF1E2621),
+                                                        child: const Center(
+                                                          child: Column(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: [
+                                                              Icon(Icons.play_circle_fill, color: Colors.white, size: 38),
+                                                              SizedBox(height: 4),
+                                                              Text(
+                                                                'VIDEO',
+                                                                style: TextStyle(
+                                                                  color: Colors.white70,
+                                                                  fontSize: 10,
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      )
+                                                    : Image(
+                                                        image: item.photo.imageProvider,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          return Container(
+                                                            color: AppTheme.softPinkBg,
+                                                            child: const Center(
+                                                              child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                                            ),
+                                                          );
+                                                        },
                                                       ),
-                                                    );
-                                                  },
-                                                ),
                                                 Positioned(
                                                   bottom: 0,
                                                   left: 0,
@@ -539,7 +652,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Dots Memories Web • Verde Salvia & Rosado • Solo Fotos 📸',
+                              'Dots Memories Web • Verde Salvia & Rosado • Fotos y Videos 📸🎬',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: AppTheme.mutedText,
@@ -560,23 +673,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     textStyle: GoogleFonts.poppins(fontSize: 11),
                                   ),
                                 ),
-                                const Text('•', style: TextStyle(color: AppTheme.mutedText)),
+                                const SizedBox(width: 12),
                                 TextButton.icon(
-                                  onPressed: _openSettingsDialog,
-                                  icon: const Icon(Icons.tune_rounded, size: 14),
-                                  label: const Text('Ajustes y Llave QR'),
+                                  onPressed: () => DownloadHelper.printPage(),
+                                  icon: const Icon(Icons.print_rounded, size: 14),
+                                  label: const Text('Imprimir Álbum'),
                                   style: TextButton.styleFrom(
                                     foregroundColor: AppTheme.sageDark,
-                                    textStyle: GoogleFonts.poppins(fontSize: 11),
-                                  ),
-                                ),
-                                const Text('•', style: TextStyle(color: AppTheme.mutedText)),
-                                TextButton.icon(
-                                  onPressed: _openQrDialog,
-                                  icon: const Icon(Icons.qr_code_2_rounded, size: 14),
-                                  label: const Text('Llave QR Mesa'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppTheme.dustyPink,
                                     textStyle: GoogleFonts.poppins(fontSize: 11),
                                   ),
                                 ),
@@ -589,80 +692,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-
-              // FAB EN DISPOSITIVOS MÓVILES
-              floatingActionButton: isMobile
-                  ? FloatingActionButton.extended(
-                      onPressed: _onUploadAttempt,
-                      backgroundColor: isUnlocked ? AppTheme.sageGreen : AppTheme.dustyPink,
-                      icon: Icon(
-                        isUnlocked ? Icons.add_photo_alternate_rounded : Icons.lock_open_rounded,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        isUnlocked ? 'Subir Fotos' : 'Desbloquear 🔒',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
-                  : null,
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: _onUploadAttempt,
+                backgroundColor: AppTheme.sageDark,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                icon: const Icon(Icons.add_photo_alternate_rounded),
+                label: Text(
+                  'Subir Fotos y Videos',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
+              ),
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onAction,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.sageLight,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.sageBorder),
-              ),
-              child: Icon(icon, size: 48, color: AppTheme.sageGreen),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.sageDeep,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: AppTheme.mutedText,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: onAction,
-              icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
-              label: const Text('Subir Fotos Ahora'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.sageGreen),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

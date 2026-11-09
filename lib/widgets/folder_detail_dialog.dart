@@ -341,18 +341,39 @@ class FolderDetailDialog extends StatelessWidget {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image(
-                                    image: photo.imageProvider,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: AppTheme.softPinkBg,
-                                        child: const Center(
-                                          child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                  photo.isVideo
+                                      ? Container(
+                                          color: const Color(0xFF1E2621),
+                                          child: const Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  'VIDEO',
+                                                  style: TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      : Image(
+                                          image: photo.imageProvider,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              color: AppTheme.softPinkBg,
+                                              child: const Center(
+                                                child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                              ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    },
-                                  ),
                                   // Gradiente inferior con hover
                                   Positioned(
                                     bottom: 0,

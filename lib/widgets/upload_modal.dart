@@ -25,7 +25,7 @@ class _UploadModalState extends State<UploadModal> {
   final List<SelectedFile> _selectedFiles = [];
   bool _isPicking = false;
 
-  static const Set<String> _validPhotoExtensions = {
+  static const Set<String> _validMediaExtensions = {
     'jpg',
     'jpeg',
     'png',
@@ -33,7 +33,23 @@ class _UploadModalState extends State<UploadModal> {
     'heic',
     'heif',
     'bmp',
+    'mp4',
+    'mov',
+    'webm',
+    'avi',
+    'mkv',
+    'm4v',
+    '3gp',
   };
+
+  @override
+  void initState() {
+    super.initState();
+    final savedName = widget.storageService.myGuestNameNotifier.value;
+    if (savedName.isNotEmpty) {
+      _nameController.text = savedName;
+    }
+  }
 
   @override
   void dispose() {
@@ -46,27 +62,39 @@ class _UploadModalState extends State<UploadModal> {
     setState(() => _isPicking = true);
     try {
       final result = await FilePicker.pickFiles(
-        type: FileType.image,
+        type: FileType.custom,
+        allowedExtensions: _validMediaExtensions.toList(),
       );
 
       if (result.isNotEmpty) {
-        int skippedNonPhotos = 0;
+        int skippedUnsupported = 0;
+        int skippedOversized = 0;
 
         for (final file in result) {
           final ext = file.extension?.toLowerCase() ?? '';
-          // Validación estricta: ÚNICAMENTE fotos
-          if (!_validPhotoExtensions.contains(ext)) {
-            skippedNonPhotos++;
+          if (!_validMediaExtensions.contains(ext)) {
+            skippedUnsupported++;
             continue;
           }
 
           final bytes = await file.readAsBytes();
           final size = (await file.length()) ?? bytes.length;
 
+          // Límite de 50MB por archivo para Appwrite Storage
+          if (size > 50 * 1024 * 1024) {
+            skippedOversized++;
+            continue;
+          }
+
           String mime = 'image/jpeg';
           if (ext == 'png') mime = 'image/png';
           if (ext == 'webp') mime = 'image/webp';
           if (ext == 'heic' || ext == 'heif') mime = 'image/heic';
+          if (ext == 'mp4' || ext == 'm4v') mime = 'video/mp4';
+          if (ext == 'mov') mime = 'video/quicktime';
+          if (ext == 'webm') mime = 'video/webm';
+          if (ext == 'avi') mime = 'video/x-msvideo';
+          if (ext == 'mkv') mime = 'video/x-matroska';
 
           _selectedFiles.add(
             SelectedFile(
@@ -78,12 +106,22 @@ class _UploadModalState extends State<UploadModal> {
           );
         }
 
-        if (skippedNonPhotos > 0 && mounted) {
+        if (skippedOversized > 0 && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: AppTheme.dustyPink,
               content: Text(
-                'Solo se permite subir fotos (JPG, PNG, WEBP, HEIC). Se omitieron $skippedNonPhotos archivo(s).',
+                'Se omitieron $skippedOversized archivo(s) que superan el límite de 50MB.',
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+            ),
+          );
+        } else if (skippedUnsupported > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppTheme.dustyPink,
+              content: Text(
+                'Solo se permite subir fotos y videos (JPG, PNG, MP4, MOV). Se omitieron $skippedUnsupported archivo(s).',
                 style: GoogleFonts.poppins(color: Colors.white),
               ),
             ),
@@ -93,7 +131,7 @@ class _UploadModalState extends State<UploadModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error seleccionando fotos: $e')),
+          SnackBar(content: Text('Error seleccionando archivos: $e')),
         );
       }
     } finally {
@@ -237,7 +275,7 @@ class _UploadModalState extends State<UploadModal> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Subir Fotos para Danna',
+                                    'Subir Fotos y Videos para Danna',
                                     style: GoogleFonts.playfairDisplay(
                                       fontSize: isMobile ? 18 : 22,
                                       fontWeight: FontWeight.bold,
@@ -245,7 +283,7 @@ class _UploadModalState extends State<UploadModal> {
                                     ),
                                   ),
                                   Text(
-                                    'Comparte todas las fotos que tomaste y déjale tu dedicatoria',
+                                    'Comparte todas tus fotos y videos de la fiesta y déjale tu dedicatoria',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: AppTheme.mutedText,
@@ -414,7 +452,7 @@ class _UploadModalState extends State<UploadModal> {
                                         Text(
                                           _isPicking
                                               ? 'Abriendo galería...'
-                                              : 'Toca aquí para elegir fotos',
+                                              : 'Toca aquí para elegir fotos y videos',
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
@@ -423,7 +461,7 @@ class _UploadModalState extends State<UploadModal> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '¡Puedes subir todas las fotos que quieras a la vez! Sin límite.',
+                                          '¡Puedes subir todas las fotos y videos que quieras a la vez!',
                                           textAlign: TextAlign.center,
                                           style: GoogleFonts.poppins(
                                             fontSize: 12,
@@ -432,7 +470,7 @@ class _UploadModalState extends State<UploadModal> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Formatos permitidos: JPG, PNG, WEBP, HEIC',
+                                          'Fotos: JPG, PNG, WEBP, HEIC • Videos: MP4, MOV, WEBM (máx. 50MB)',
                                           style: GoogleFonts.poppins(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
@@ -488,10 +526,35 @@ class _UploadModalState extends State<UploadModal> {
                                           child: Stack(
                                             fit: StackFit.expand,
                                             children: [
-                                              Image.memory(
-                                                file.bytes,
-                                                fit: BoxFit.cover,
-                                              ),
+                                              file.isVideo
+                                                  ? Container(
+                                                      color: const Color(0xFF1E2621),
+                                                      child: const Center(
+                                                        child: Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            Icon(Icons.play_circle_fill, color: Colors.white, size: 30),
+                                                            SizedBox(height: 4),
+                                                            Text(
+                                                              'VIDEO',
+                                                              style: TextStyle(
+                                                                color: Colors.white70,
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : Image.memory(
+                                                      file.bytes,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (ctx, err, stack) => Container(
+                                                        color: AppTheme.sageLight,
+                                                        child: const Icon(Icons.broken_image_rounded, color: AppTheme.sageGreen),
+                                                      ),
+                                                    ),
                                               // Botón eliminar foto individual
                                               if (!isUploading)
                                                 Positioned(
@@ -542,8 +605,8 @@ class _UploadModalState extends State<UploadModal> {
                                         const SizedBox(width: 10),
                                         Text(
                                           _selectedFiles.isEmpty
-                                              ? 'Selecciona fotos para continuar'
-                                              : 'Crear Carpeta y Subir Fotos (${_selectedFiles.length})',
+                                              ? 'Selecciona fotos y videos para continuar'
+                                              : 'Guardar y Subir Recuerdos (${_selectedFiles.length})',
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
