@@ -377,6 +377,8 @@ class StorageService {
                   pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23d8f369a3dc77748/view?project=danna15-memories';
                 } else if (pId == '1B8duLCsx0DqsHM5y9m58Ze0eT2C7T5Ad') {
                   pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23def35cad9eacb10/view?project=danna15-memories';
+                } else if (pId == '1raLOylF7hTxeFctlTiUatPvFnSzIObFP' || pName.contains('Captura de pantalla 2026-10-28')) {
+                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af2439cb4ad0a6a4dc6/view?project=danna15-memories';
                 } else {
                   pUrl = p['url'] as String? ?? 'https://lh3.googleusercontent.com/d/$pId';
                 }

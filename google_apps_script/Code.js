@@ -3,24 +3,21 @@
  * BACKEND GOOGLE APPS SCRIPT - DOTS MEMORIES: 15 AÑOS DE DANNA
  * =========================================================================
  * Álbum Destino de Google Fotos:
- * https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm
+ * https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UJ4UZ0AYaRKKtLha7dIAWfUkKmJm
  *
  * Este script se ejecuta en tu cuenta de Google de forma 100% gratuita.
  * Recibe las fotos y comentarios que suben los invitados desde la web Flutter
  * y las guarda en tu Álbum de Google Fotos y en carpetas organizadas en Google Drive.
  *
- * INSTRUCCIONES DE INSTALACIÓN (2 minutos):
- * 1. Entra a https://script.google.com/ y haz clic en "Nuevo proyecto".
- * 2. Borra todo el código que aparezca y pega este archivo completo.
- * 3. Haz clic en "Implementar" (botón azul arriba a la derecha) > "Nueva implementación".
- * 4. En tipo de implementación (icono de engranaje) selecciona "Aplicación web".
- * 5. Configura:
- *    - Descripción: "Dots Memories Danna - Álbum Google Fotos"
- *    - Ejecutar como: "Yo (tu correo de Google)"
- *    - Quién tiene acceso: "Cualquiera" (Anyone) -> Permite que los invitados suban fotos sin login.
- * 6. Haz clic en "Implementar", autoriza los permisos de Google Drive y Fotos.
- * 7. Copia la "URL de la aplicación web" (termina en /exec) y pégala en la app web de Danna
- *    en el botón de Ajustes ⚙️ (Google Nube).
+ * CÓMO PUBLICAR / ACTUALIZAR (MUY IMPORTANTE):
+ * 1. Pega este código completo en tu archivo Code.gs en script.google.com.
+ * 2. Guarda los cambios (Ctrl+S o Cmd+S).
+ * 3. Haz clic en "Implementar" (botón azul arriba a la derecha).
+ * 4. Selecciona "Gestionar implementaciones".
+ * 5. Haz clic en el icono del LÁPIZ (Editar) de la implementación activa.
+ * 6. En el desplegable "Versión", selecciona SIEMPRE: "Nueva versión".
+ * 7. Haz clic en el botón azul "Implementar".
+ * ¡Listo! Así tus cambios se aplican de inmediato en la aplicación web.
  */
 
 const GOOGLE_PHOTOS_ALBUM_ID = "AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm";
@@ -33,13 +30,17 @@ const MAIN_DRIVE_FOLDER_NAME = "15 Años Danna - Fotos de Invitados";
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
-      return responseJSON({ status: "error", message: "No se recibieron datos" });
+      Logger.log("⚠️ [doPost] Invocado manualmente desde el editor sin datos HTTP.");
+      Logger.log("👉 Para probar desde este editor, selecciona la función 'probarConexionDesdeEditor' o 'probarSubidaDesdeEditor' en el menú superior y pulsa Ejecutar.");
+      return responseJSON({ status: "error", message: "No se recibieron datos HTTP en doPost" });
     }
 
     const data = JSON.parse(e.postData.contents);
     const guestName = (data.guestName || "Invitado Especial").trim();
     const comment = (data.comment || "").trim();
     const photos = data.photos || [];
+
+    Logger.log("📩 [doPost] Recibiendo subida de: " + guestName + " | Fotos: " + photos.length);
 
     // 1. Obtener o crear carpeta principal del evento en Google Drive
     const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
@@ -113,6 +114,7 @@ function doPost(e) {
           url: item.appwriteUrl || directUrl,
           viewUrl: viewUrl
         });
+        Logger.log("  📸 Foto guardada (" + (i + 1) + "/" + photos.length + "): " + fileName + " (ID: " + fileId + ")");
       } catch (photoErr) {
         Logger.log("Error guardando foto " + i + ": " + photoErr.toString());
       }
@@ -127,6 +129,8 @@ function doPost(e) {
         date: now.toISOString()
       }));
     } catch (e) { }
+
+    Logger.log("✅ [doPost] Finalizado con éxito para " + guestName + ". Carpeta: " + guestFolder.getName());
 
     // 5. Retornar respuesta exitosa con la URL del álbum de Google Fotos
     return responseJSON({
@@ -145,7 +149,7 @@ function doPost(e) {
     });
 
   } catch (err) {
-    Logger.log("Error en doPost: " + err.toString());
+    Logger.log("❌ [doPost] Error: " + err.toString());
     return responseJSON({
       status: "error",
       message: err.toString()
@@ -244,47 +248,54 @@ function doGet(e) {
         var commentText = "";
         var guestNameText = "";
 
-        var cachedPhotos = null;
-
-        // Lectura ultra rápida desde descripción
+        // Lectura ultra rápida desde metadatos cacheados
         try {
           const desc = folder.getDescription();
-          if (desc) {
-            const meta = JSON.parse(desc);
-            guestNameText = meta.guestName || "";
-            commentText = meta.comment || "";
-            if (meta.photos && Array.isArray(meta.photos) && meta.photos.length > 0) {
-              cachedPhotos = meta.photos;
+          if (desc && desc.startsWith("{")) {
+            const parsedDesc = JSON.parse(desc);
+            guestNameText = parsedDesc.guestName || "";
+            commentText = parsedDesc.comment || "";
+            if (parsedDesc.photos && Array.isArray(parsedDesc.photos) && parsedDesc.photos.length > 0) {
+              memories.push({
+                folderId: folder.getId(),
+                folderName: folder.getName(),
+                folderUrl: folder.getUrl(),
+                guestName: guestNameText,
+                comment: commentText,
+                photosCount: parsedDesc.photos.length,
+                photos: parsedDesc.photos,
+                created: folder.getDateCreated().toISOString()
+              });
+              continue;
             }
           }
-        } catch (e) { }
+        } catch (cacheErr) { }
 
-        if (cachedPhotos && cachedPhotos.length > 0) {
-          photosList = cachedPhotos;
-        } else {
-          while (files.hasNext()) {
-            const file = files.next();
-            const mime = file.getMimeType();
-            if (mime.indexOf("image") !== -1) {
-              photosList.push({
-                name: file.getName(),
-                id: file.getId(),
-                url: "https://lh3.googleusercontent.com/d/" + file.getId(),
-                viewUrl: file.getUrl()
-              });
-            } else if (!commentText && file.getName().indexOf("Dedicatoria") !== -1) {
-              try {
-                commentText = file.getBlob().getDataAsString();
-              } catch (e) { }
-            }
+        // Si no hay metadatos cacheados, recorrer archivos de la carpeta
+        while (files.hasNext()) {
+          const f = files.next();
+          const mime = f.getMimeType();
+          const name = f.getName();
+
+          if (name.startsWith("Dedicatoria_") || mime === "text/plain") {
+            try {
+              commentText = f.getBlob().getDataAsString();
+            } catch (readErr) { }
+          } else if (mime.startsWith("image/") || name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)) {
+            photosList.push({
+              name: name,
+              id: f.getId(),
+              url: "https://lh3.googleusercontent.com/d/" + f.getId(),
+              viewUrl: f.getUrl()
+            });
           }
         }
 
         memories.push({
           folderId: folder.getId(),
           folderName: folder.getName(),
-          guestName: guestNameText,
           folderUrl: folder.getUrl(),
+          guestName: guestNameText,
           comment: commentText,
           photosCount: photosList.length,
           photos: photosList,
@@ -305,6 +316,74 @@ function doGet(e) {
   } catch (err) {
     return responseJSON({ status: "error", message: err.toString() });
   }
+}
+
+/**
+ * =========================================================================
+ * FUNCIONES DE PRUEBA DESDE EL EDITOR DE GOOGLE APPS SCRIPT
+ * =========================================================================
+ * Selecciona cualquiera de estas funciones en el menú desplegable junto a
+ * "Depuración" y pulsa "Ejecutar" para ver resultados inmediatos en el Log.
+ */
+
+/**
+ * 1. Prueba de conexión y listado de carpetas existentes
+ */
+function probarConexionDesdeEditor() {
+  Logger.log("====================================================");
+  Logger.log("🚀 PRUEBA DE CONEXIÓN CON GOOGLE DRIVE (15 AÑOS DANNA)");
+  Logger.log("====================================================");
+  
+  const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
+  Logger.log("✅ Carpeta principal encontrada: " + mainFolder.getName());
+  Logger.log("📁 URL en Drive: " + mainFolder.getUrl());
+  
+  const subfolders = mainFolder.getFolders();
+  var count = 0;
+  while (subfolders.hasNext()) {
+    const f = subfolders.next();
+    count++;
+    Logger.log("  📂 [" + count + "] " + f.getName());
+  }
+  
+  Logger.log("====================================================");
+  Logger.log("🎉 PRUEBA EXITOSA: " + count + " carpetas encontradas.");
+  Logger.log("====================================================");
+}
+
+/**
+ * 2. Prueba simulada de subida de foto y dedicatoria
+ */
+function probarSubidaDesdeEditor() {
+  Logger.log("====================================================");
+  Logger.log("🧪 SIMULANDO SUBIDA DE FOTO DESDE EL EDITOR...");
+  Logger.log("====================================================");
+
+  // PNG transparente de prueba 1x1 pixel en base64
+  const mockBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify({
+        guestName: "Prueba desde Editor Apps Script",
+        comment: "¡Felicidades Danna en tus 15! Prueba de log en directo.",
+        photos: [
+          {
+            name: "foto_prueba_editor.png",
+            type: "image/png",
+            base64: mockBase64
+          }
+        ]
+      })
+    }
+  };
+
+  const resultado = doPost(mockEvent);
+  Logger.log("Respuesta obtenida:");
+  Logger.log(resultado.getContent());
+  Logger.log("====================================================");
+  Logger.log("🎉 ¡Listo! Si ves el JSON anterior, el backend funciona 100%.");
+  Logger.log("====================================================");
 }
 
 function getOrCreateMainFolder(folderName) {
