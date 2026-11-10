@@ -123,7 +123,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
   }
 
   void _showHostLoginDialog() {
-    final emailCtrl = TextEditingController(text: 'admin@danna15.com');
+    final emailCtrl = TextEditingController();
     final passCtrl = TextEditingController();
     bool isSubmitting = false;
     String? errorMsg;
@@ -166,8 +166,10 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Correo de Anfitrión',
+                      hintText: 'correo@ejemplo.com',
                       prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.sageGreen),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -178,6 +180,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                     obscureText: true,
                     decoration: InputDecoration(
                       labelText: 'Contraseña de Appwrite',
+                      hintText: '••••••••',
                       prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.sageGreen),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                     ),

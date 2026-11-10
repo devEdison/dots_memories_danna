@@ -269,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Sesión Anfitrión: ${widget.authService.currentUser?.name ?? "Familia Danna"} (${widget.authService.currentUser?.email ?? "admin@danna15.com"})',
+                                  'Sesión Anfitrión: ${widget.authService.currentUser?.name ?? "Familia Danna"}${widget.authService.currentUser?.email != null ? " (${widget.authService.currentUser!.email})" : ""}',
                                   style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                                   overflow: TextOverflow.ellipsis,
                                 ),

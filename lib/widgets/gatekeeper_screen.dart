@@ -26,8 +26,8 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
   String? _guestError;
 
   // Formulario Anfitrión (Appwrite)
-  final _emailController = TextEditingController(text: 'admin@danna15.com');
-  final _passwordController = TextEditingController(text: 'Danna15Memories');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   String? _authError;
   bool _isLoggingIn = false;
 
@@ -274,8 +274,10 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                               const SizedBox(height: 16),
                               TextField(
                                 controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
                                 decoration: InputDecoration(
-                                  labelText: 'Correo electrónico',
+                                  labelText: 'Correo de anfitrión',
+                                  hintText: 'correo@ejemplo.com',
                                   prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.sageGreen),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                                 ),
@@ -286,6 +288,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                 obscureText: true,
                                 decoration: InputDecoration(
                                   labelText: 'Contraseña de Appwrite',
+                                  hintText: '••••••••',
                                   prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.sageGreen),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                                 ),
