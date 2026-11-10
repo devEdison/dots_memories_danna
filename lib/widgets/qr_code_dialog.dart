@@ -30,6 +30,13 @@ class QrCodeDialog extends StatelessWidget {
     );
   }
 
+  void _shareWhatsApp(String url) {
+    final message = Uri.encodeComponent(
+      '👑✨ ¡Hola! Entra aquí para subir y compartir tus fotos y videos en los 15 Años de Danna: $url',
+    );
+    DownloadHelper.openUrl('https://api.whatsapp.com/send?text=$message');
+  }
+
   @override
   Widget build(BuildContext context) {
     final qrAccessUrl = _getAccessUrl();
@@ -84,7 +91,7 @@ class QrCodeDialog extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Llave QR para Mesas',
+                            'Código QR para Compartir',
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -92,7 +99,7 @@ class QrCodeDialog extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Clave de acceso: $accessKey',
+                            'Clave de acceso: $accessKey • Escanea o comparte',
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: AppTheme.mutedText,
@@ -216,6 +223,31 @@ class QrCodeDialog extends StatelessWidget {
 
                   const SizedBox(height: 18),
 
+                  // Botón directo para compartir por WhatsApp
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _shareWhatsApp(qrAccessUrl),
+                      icon: const Icon(Icons.share_rounded, size: 18, color: Colors.white),
+                      label: Text(
+                        'Compartir por WhatsApp 📲',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
                   Row(
                     children: [
                       Expanded(
@@ -226,6 +258,8 @@ class QrCodeDialog extends StatelessWidget {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.sageDark,
                             side: const BorderSide(color: AppTheme.sageBorder),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                       ),
@@ -237,6 +271,9 @@ class QrCodeDialog extends StatelessWidget {
                           label: const Text('Imprimir'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.sageGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                       ),

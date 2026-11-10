@@ -8,6 +8,7 @@ import '../services/appwrite_auth_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'photo_lightbox.dart';
+import 'qr_code_dialog.dart';
 import 'upload_modal.dart';
 import 'video_player_dialog.dart';
 
@@ -39,6 +40,13 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => UploadModal(storageService: widget.storageService),
+    );
+  }
+
+  void _openQrDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => QrCodeDialog(storageService: widget.storageService),
     );
   }
 
@@ -288,37 +296,27 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                       constraints: const BoxConstraints(maxWidth: 900),
                       child: Column(
                         children: [
-                          // Barra superior: badge de QR y botones de acción
+                          // Barra superior: botón para compartir QR y acciones
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppTheme.pinkBorder),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.dustyPink.withAlpha(30),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
+                              OutlinedButton.icon(
+                                onPressed: _openQrDialog,
+                                icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: AppTheme.deepRose),
+                                label: Text(
+                                  isMobile ? 'Compartir QR' : 'Compartir QR 📲',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.deepRose,
+                                  ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.qr_code_2_rounded, size: 16, color: AppTheme.deepRose),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Acceso QR Invitado',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.deepRose,
-                                      ),
-                                    ),
-                                  ],
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
+                                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  elevation: 1,
                                 ),
                               ),
                               Row(
@@ -503,6 +501,24 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 42,
+                                        child: OutlinedButton.icon(
+                                          onPressed: _openQrDialog,
+                                          icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
+                                          label: Text(
+                                            'Compartir Código QR con la Mesa 📲',
+                                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppTheme.deepRose, fontSize: 13),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   )
                                 : Row(
@@ -535,6 +551,21 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                           ],
                                         ),
                                       ),
+                                      OutlinedButton.icon(
+                                        onPressed: _openQrDialog,
+                                        icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
+                                        label: Text(
+                                          'Compartir QR 📲',
+                                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppTheme.deepRose),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
                                       ElevatedButton.icon(
                                         onPressed: _openUploadModal,
                                         icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
@@ -609,6 +640,25 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                               backgroundColor: AppTheme.sageDark,
                               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: _openQrDialog,
+                            icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
+                            label: Text(
+                              'Mostrar o Compartir Código QR con la mesa 📲',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: AppTheme.deepRose,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
+                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
                           const SizedBox(height: 20),
