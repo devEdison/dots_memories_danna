@@ -468,11 +468,13 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  'Tus recuerdos subidos:',
+                                                  myFolders.isEmpty ? 'Estado de tus recuerdos:' : 'Tus recuerdos subidos:',
                                                   style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
                                                 ),
                                                 Text(
-                                                  '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                                  myFolders.isEmpty
+                                                      ? '¡Aún no has compartido fotos!'
+                                                      : '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
                                                   style: GoogleFonts.poppins(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
@@ -492,7 +494,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                           onPressed: _openUploadModal,
                                           icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
                                           label: Text(
-                                            'Subir Más Fotos y Videos',
+                                            myFolders.isEmpty ? 'Subir Mis Fotos y Videos Ahora ✨' : 'Subir Más Fotos a Mi Carpeta 📸',
                                             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
                                           ),
                                           style: ElevatedButton.styleFrom(
@@ -537,11 +539,13 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Tus recuerdos subidos:',
+                                              myFolders.isEmpty ? 'Estado de tus recuerdos:' : 'Tus recuerdos subidos:',
                                               style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.mutedText),
                                             ),
                                             Text(
-                                              '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                              myFolders.isEmpty
+                                                  ? '¡Aún no has compartido fotos!'
+                                                  : '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
                                               style: GoogleFonts.poppins(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
@@ -570,7 +574,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                         onPressed: _openUploadModal,
                                         icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
                                         label: Text(
-                                          'Subir Fotos y Videos',
+                                          myFolders.isEmpty ? 'Subir Mis Fotos y Videos Ahora ✨' : 'Subir Más Fotos a Mi Carpeta 📸',
                                           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
                                         ),
                                         style: ElevatedButton.styleFrom(

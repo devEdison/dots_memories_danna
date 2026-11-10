@@ -8,6 +8,7 @@ class MemoryFolder {
   final List<MemoryItem> photos;
   final String? folderUrl;
   final String? googleFolderId;
+  final String? deviceId;
   int likes;
   bool isSyncedToGoogle;
 
@@ -19,6 +20,7 @@ class MemoryFolder {
     required this.photos,
     this.folderUrl,
     this.googleFolderId,
+    this.deviceId,
     this.likes = 0,
     this.isSyncedToGoogle = false,
   });
@@ -35,6 +37,7 @@ class MemoryFolder {
       'photos': photos.map((p) => p.toJson()).toList(),
       'folderUrl': folderUrl,
       'googleFolderId': googleFolderId,
+      'deviceId': deviceId,
       'likes': likes,
       'isSyncedToGoogle': isSyncedToGoogle,
     };
@@ -53,6 +56,7 @@ class MemoryFolder {
           .toList(),
       folderUrl: json['folderUrl'] as String?,
       googleFolderId: json['googleFolderId'] as String?,
+      deviceId: json['deviceId'] as String?,
       likes: (json['likes'] as num?)?.toInt() ?? 0,
       isSyncedToGoogle: json['isSyncedToGoogle'] as bool? ?? false,
     );
@@ -66,6 +70,7 @@ class MemoryFolder {
     List<MemoryItem>? photos,
     String? folderUrl,
     String? googleFolderId,
+    String? deviceId,
     int? likes,
     bool? isSyncedToGoogle,
   }) {
@@ -77,6 +82,7 @@ class MemoryFolder {
       photos: photos ?? this.photos,
       folderUrl: folderUrl ?? this.folderUrl,
       googleFolderId: googleFolderId ?? this.googleFolderId,
+      deviceId: deviceId ?? this.deviceId,
       likes: likes ?? this.likes,
       isSyncedToGoogle: isSyncedToGoogle ?? this.isSyncedToGoogle,
     );

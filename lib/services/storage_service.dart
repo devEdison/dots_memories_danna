@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,6 +43,9 @@ class StorageService {
   static const String _prefKeyUnlocked = 'dots_memories_unlocked_v1';
   static const String _prefKeyMyFolders = 'dots_my_folder_ids_v1';
   static const String _prefKeyMyGuestName = 'dots_my_guest_name_v1';
+  static const String _prefKeyDeviceId = 'dots_device_id_v1';
+
+  String deviceId = '';
 
   final ValueNotifier<List<MemoryFolder>> foldersNotifier = ValueNotifier<List<MemoryFolder>>([]);
   final ValueNotifier<AppConfig> configNotifier = ValueNotifier<AppConfig>(AppConfig());
@@ -60,15 +64,27 @@ class StorageService {
   bool get isAccessUnlocked => isAccessUnlockedNotifier.value;
   bool get isSyncing => isSyncingNotifier.value;
 
+  /// Retorna la carpeta principal de este dispositivo si ya existe
+  MemoryFolder? get myDeviceFolder {
+    final myF = myFolders;
+    return myF.isNotEmpty ? myF.first : null;
+  }
+
   /// Retorna ÚNICAMENTE las carpetas que pertenecen al invitado de este dispositivo
   List<MemoryFolder> get myFolders {
     final myIds = myFolderIdsNotifier.value;
     final guestName = myGuestNameNotifier.value.trim().toLowerCase();
 
     return foldersNotifier.value.where((f) {
+      // 1. Vinculación estricta por ID de dispositivo
+      if (deviceId.isNotEmpty && f.deviceId != null && f.deviceId == deviceId) {
+        return true;
+      }
+      // 2. Vinculación por IDs de carpetas registradas localmente
       if (myIds.contains(f.id) || (f.googleFolderId != null && myIds.contains(f.googleFolderId))) {
         return true;
       }
+      // 3. Vinculación por nombre del invitado de este dispositivo
       if (guestName.isNotEmpty && f.guestName.trim().toLowerCase() == guestName) {
         return true;
       }
@@ -78,6 +94,14 @@ class StorageService {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Inicializar o cargar identificador único persistente del dispositivo
+    deviceId = prefs.getString(_prefKeyDeviceId) ?? '';
+    if (deviceId.isEmpty) {
+      final rand = Random().nextInt(900000) + 100000;
+      deviceId = 'dev_${DateTime.now().millisecondsSinceEpoch}_$rand';
+      await prefs.setString(_prefKeyDeviceId, deviceId);
+    }
 
     // Cargar Configuración
     final configStr = prefs.getString(_prefKeyConfig);
@@ -219,15 +243,25 @@ class StorageService {
     uploadStatusNotifier.value = 'Procesando $typeSummary...';
 
     final now = DateTime.now();
-    final folderId = 'folder_${now.millisecondsSinceEpoch}';
+
+    // Detectar si este dispositivo ya tiene una carpeta para sumarle las fotos directamente
+    final existingFolder = myDeviceFolder;
+    final folderId = existingFolder?.id ?? 'folder_${now.millisecondsSinceEpoch}';
+    final targetGuestName = guestName.trim().isNotEmpty
+        ? guestName.trim()
+        : (existingFolder?.guestName ?? 'Invitado Especial');
+    final targetComment = comment.trim().isNotEmpty
+        ? comment.trim()
+        : (existingFolder?.comment ?? '');
 
     // Crear elementos de memoria para visualización inmediata
     final localPhotoItems = <MemoryItem>[];
+    final startIndex = existingFolder?.photos.length ?? 0;
     for (int i = 0; i < files.length; i++) {
       final f = files[i];
       localPhotoItems.add(
         MemoryItem(
-          id: '${folderId}_media_$i',
+          id: '${folderId}_media_${startIndex + i}',
           fileName: f.name,
           bytes: f.bytes,
           base64Data: f.isVideo ? null : base64Encode(f.bytes),
@@ -238,14 +272,23 @@ class StorageService {
       );
     }
 
-    var newFolder = MemoryFolder(
-      id: folderId,
-      guestName: guestName.trim().isEmpty ? 'Invitado Especial' : guestName.trim(),
-      comment: comment.trim(),
-      timestamp: now,
-      photos: localPhotoItems,
-      isSyncedToGoogle: false,
-    );
+    var activeFolder = existingFolder != null
+        ? existingFolder.copyWith(
+            guestName: targetGuestName,
+            comment: targetComment,
+            photos: [...existingFolder.photos, ...localPhotoItems],
+            timestamp: now,
+            deviceId: deviceId,
+          )
+        : MemoryFolder(
+            id: folderId,
+            guestName: targetGuestName,
+            comment: targetComment,
+            timestamp: now,
+            photos: localPhotoItems,
+            deviceId: deviceId,
+            isSyncedToGoogle: false,
+          );
 
     // 1. Subir a Appwrite Storage para CDN rápido y sin error 429
     final currentConfig = configNotifier.value;
@@ -300,13 +343,15 @@ class StorageService {
         }
 
         final payload = jsonEncode({
-          'guestName': newFolder.guestName,
-          'comment': newFolder.comment,
+          'guestName': targetGuestName,
+          'comment': targetComment,
+          'deviceId': deviceId,
+          'folderId': existingFolder?.googleFolderId,
           'photos': photosPayload,
         });
 
         uploadProgressNotifier.value = 0.75;
-        uploadStatusNotifier.value = 'Guardando dedicatoria y archivos...';
+        uploadStatusNotifier.value = 'Guardando dedicatoria y archivos en tu carpeta...';
 
         final response = await http.post(
           Uri.parse(currentConfig.googleScriptUrl.trim()),
@@ -324,7 +369,7 @@ class StorageService {
               final googleFolderId = resJson['folderId'] as String?;
               final remotePhotos = resJson['photos'] as List<dynamic>?;
 
-              final updatedPhotos = <MemoryItem>[];
+              final updatedNewPhotos = <MemoryItem>[];
               for (int i = 0; i < localPhotoItems.length; i++) {
                 String? remoteUrl;
                 if (i < appwritePhotoUrls.length && appwritePhotoUrls[i] != null) {
@@ -332,7 +377,7 @@ class StorageService {
                 } else if (remotePhotos != null && i < remotePhotos.length) {
                   remoteUrl = remotePhotos[i]['url'] as String?;
                 }
-                updatedPhotos.add(
+                updatedNewPhotos.add(
                   MemoryItem(
                     id: localPhotoItems[i].id,
                     fileName: localPhotoItems[i].fileName,
@@ -346,13 +391,18 @@ class StorageService {
                 );
               }
 
-              newFolder = newFolder.copyWith(
-                folderUrl: googleFolderUrl,
-                googleFolderId: googleFolderId,
-                photos: updatedPhotos,
+              final finalPhotos = existingFolder != null
+                  ? [...existingFolder.photos, ...updatedNewPhotos]
+                  : updatedNewPhotos;
+
+              activeFolder = activeFolder.copyWith(
+                folderUrl: googleFolderUrl ?? existingFolder?.folderUrl,
+                googleFolderId: googleFolderId ?? existingFolder?.googleFolderId,
+                photos: finalPhotos,
+                deviceId: deviceId,
                 isSyncedToGoogle: true,
               );
-              uploadStatusNotifier.value = '¡Guardado con éxito en Appwrite y Google Nube!';
+              uploadStatusNotifier.value = '¡Guardado con éxito en tu carpeta!';
             }
           } catch (e) {
             debugPrint('Aviso al interpretar respuesta de Google: $e');
@@ -369,19 +419,28 @@ class StorageService {
 
     uploadProgressNotifier.value = 1.0;
 
-    // Insertar la nueva carpeta al inicio de la lista inmediatamente
-    final updatedList = [newFolder, ...foldersNotifier.value];
-    foldersNotifier.value = updatedList;
+    // Actualizar la carpeta en la lista (reemplazar si existía o insertar al inicio)
+    final currentList = List<MemoryFolder>.from(foldersNotifier.value);
+    final existingIndex = currentList.indexWhere((f) => f.id == activeFolder.id);
+    if (existingIndex != -1) {
+      currentList[existingIndex] = activeFolder;
+    } else {
+      currentList.insert(0, activeFolder);
+    }
+    foldersNotifier.value = currentList;
     await _saveFoldersToDisk();
 
     // Registrar como carpeta de este invitado en su espacio privado
     final currentMyIds = List<String>.from(myFolderIdsNotifier.value);
-    if (!currentMyIds.contains(newFolder.id)) {
-      currentMyIds.insert(0, newFolder.id);
-      myFolderIdsNotifier.value = currentMyIds;
+    if (!currentMyIds.contains(activeFolder.id)) {
+      currentMyIds.insert(0, activeFolder.id);
     }
-    if (newFolder.guestName.isNotEmpty) {
-      myGuestNameNotifier.value = newFolder.guestName;
+    if (activeFolder.googleFolderId != null && !currentMyIds.contains(activeFolder.googleFolderId!)) {
+      currentMyIds.insert(0, activeFolder.googleFolderId!);
+    }
+    myFolderIdsNotifier.value = currentMyIds;
+    if (activeFolder.guestName.isNotEmpty) {
+      myGuestNameNotifier.value = activeFolder.guestName;
     }
     await _saveMyFoldersToDisk();
 
@@ -484,9 +543,27 @@ class StorageService {
               continue;
             }
 
+            final remoteDevId = folderMap['deviceId'] as String?;
+            final folderId = folderMap['folderId'] as String?;
+            final isMyDevice = (remoteDevId != null && remoteDevId.isNotEmpty && remoteDevId == deviceId) ||
+                (folderId != null && myFolderIdsNotifier.value.contains(folderId)) ||
+                (myGuestNameNotifier.value.isNotEmpty && cleanGuestName.toLowerCase() == myGuestNameNotifier.value.toLowerCase());
+
+            if (isMyDevice && folderId != null) {
+              final myIds = List<String>.from(myFolderIdsNotifier.value);
+              if (!myIds.contains(folderId)) {
+                myIds.add(folderId);
+                myFolderIdsNotifier.value = myIds;
+                _saveMyFoldersToDisk();
+              }
+              if (myGuestNameNotifier.value.isEmpty && cleanGuestName.isNotEmpty) {
+                myGuestNameNotifier.value = cleanGuestName;
+              }
+            }
+
             loadedFolders.add(
               MemoryFolder(
-                id: folderMap['folderId'] as String? ?? UniqueKey().toString(),
+                id: folderId ?? UniqueKey().toString(),
                 guestName: cleanGuestName.isEmpty ? 'Invitado Especial' : cleanGuestName,
                 comment: cleanComment,
                 timestamp: folderMap['created'] != null
@@ -494,7 +571,8 @@ class StorageService {
                     : DateTime.now(),
                 photos: photosItems,
                 folderUrl: folderMap['folderUrl'] as String?,
-                googleFolderId: folderMap['folderId'] as String?,
+                googleFolderId: folderId,
+                deviceId: isMyDevice ? deviceId : remoteDevId,
                 isSyncedToGoogle: true,
               ),
             );

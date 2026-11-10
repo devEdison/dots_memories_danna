@@ -45,9 +45,16 @@ class _UploadModalState extends State<UploadModal> {
   @override
   void initState() {
     super.initState();
+    final existing = widget.storageService.myDeviceFolder;
     final savedName = widget.storageService.myGuestNameNotifier.value;
     if (savedName.isNotEmpty) {
       _nameController.text = savedName;
+    } else if (existing != null && existing.guestName.isNotEmpty) {
+      _nameController.text = existing.guestName;
+    }
+
+    if (existing != null && existing.comment.isNotEmpty) {
+      _commentController.text = existing.comment;
     }
   }
 
@@ -320,6 +327,54 @@ class _UploadModalState extends State<UploadModal> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Banner informativo si el dispositivo ya está vinculado a una carpeta existente
+                                if (widget.storageService.myDeviceFolder != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.sageLight,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: AppTheme.sageBorder),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.devices_rounded, size: 18, color: AppTheme.sageDark),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Dispositivo vinculado a tu carpeta',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.sageDeep,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Estas nuevas fotos se sumarán a tu carpeta actual (${widget.storageService.myDeviceFolder!.photos.length} fotos ya guardadas).',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 11,
+                                                  color: AppTheme.mutedText,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+
                                 // Nombre del invitado
                                 Text(
                                   'Tu Nombre o Familia *',
@@ -612,7 +667,9 @@ class _UploadModalState extends State<UploadModal> {
                                         Text(
                                           _selectedFiles.isEmpty
                                               ? 'Selecciona fotos y videos para continuar'
-                                              : 'Guardar y Subir Recuerdos (${_selectedFiles.length})',
+                                              : (widget.storageService.myDeviceFolder != null
+                                                  ? 'Añadir a Mi Carpeta (${_selectedFiles.length}) ✨'
+                                                  : 'Guardar y Subir Recuerdos (${_selectedFiles.length}) ✨'),
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,

@@ -39,27 +39,58 @@ function doPost(e) {
     const guestName = (data.guestName || "Invitado Especial").trim();
     const comment = (data.comment || "").trim();
     const photos = data.photos || [];
+    const deviceId = (data.deviceId || "").trim();
+    const existingFolderId = (data.folderId || "").trim();
 
-    Logger.log("📩 [doPost] Recibiendo subida de: " + guestName + " | Fotos: " + photos.length);
+    Logger.log("📩 [doPost] Recibiendo subida de: " + guestName + " | Fotos: " + photos.length + " | Device: " + deviceId);
 
     // 1. Obtener o crear carpeta principal del evento en Google Drive
     const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
 
-    // 2. Crear subcarpeta para el invitado con fecha y hora
+    // 2. Obtener carpeta existente vinculada al dispositivo o crear una nueva
+    var guestFolder = null;
+    if (existingFolderId) {
+      try {
+        guestFolder = DriveApp.getFolderById(existingFolderId);
+      } catch (err) {
+        guestFolder = null;
+      }
+    }
+
+    if (!guestFolder && deviceId) {
+      // Buscar si ya existe una subcarpeta para este dispositivo
+      const subfolders = mainFolder.getFolders();
+      while (subfolders.hasNext()) {
+        const sf = subfolders.next();
+        try {
+          const desc = sf.getDescription();
+          if (desc && desc.startsWith("{")) {
+            const parsed = JSON.parse(desc);
+            if (parsed.deviceId && parsed.deviceId === deviceId) {
+              guestFolder = sf;
+              break;
+            }
+          }
+        } catch (e) { }
+      }
+    }
+
     const now = new Date();
-    const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd_HH-mm");
     const safeGuestName = guestName.replace(/[\/\\:*?"<>|]/g, "_");
-    const guestFolderName = safeGuestName + " (" + dateStr + ")";
-    const guestFolder = mainFolder.createFolder(guestFolderName);
 
-    // Dar permisos de lectura
-    guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    if (!guestFolder) {
+      const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd_HH-mm");
+      const guestFolderName = safeGuestName + " (" + dateStr + ")";
+      guestFolder = mainFolder.createFolder(guestFolderName);
+      guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
 
-    // Guardar metadatos en la descripción de la carpeta para lectura ultra rápida
+    // Guardar o actualizar metadatos con deviceId en la descripción de la carpeta
     try {
       guestFolder.setDescription(JSON.stringify({
         guestName: guestName,
         comment: comment,
+        deviceId: deviceId,
         date: now.toISOString()
       }));
     } catch (e) { }
@@ -248,6 +279,8 @@ function doGet(e) {
         var commentText = "";
         var guestNameText = "";
 
+        var deviceIdText = "";
+
         // Lectura ultra rápida desde metadatos cacheados
         try {
           const desc = folder.getDescription();
@@ -255,6 +288,7 @@ function doGet(e) {
             const parsedDesc = JSON.parse(desc);
             guestNameText = parsedDesc.guestName || "";
             commentText = parsedDesc.comment || "";
+            deviceIdText = parsedDesc.deviceId || "";
             if (parsedDesc.photos && Array.isArray(parsedDesc.photos) && parsedDesc.photos.length > 0) {
               memories.push({
                 folderId: folder.getId(),
@@ -262,6 +296,7 @@ function doGet(e) {
                 folderUrl: folder.getUrl(),
                 guestName: guestNameText,
                 comment: commentText,
+                deviceId: deviceIdText,
                 photosCount: parsedDesc.photos.length,
                 photos: parsedDesc.photos,
                 created: folder.getDateCreated().toISOString()
@@ -297,6 +332,7 @@ function doGet(e) {
           folderUrl: folder.getUrl(),
           guestName: guestNameText,
           comment: commentText,
+          deviceId: deviceIdText,
           photosCount: photosList.length,
           photos: photosList,
           created: folder.getDateCreated().toISOString()
