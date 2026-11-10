@@ -48,7 +48,10 @@ function doPost(e) {
     const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
 
     // 2. Obtener carpeta existente vinculada al dispositivo o crear una nueva
+    const safeGuestName = guestName.replace(/[\/\\:*?"<>|]/g, "_");
     var guestFolder = null;
+
+    // A) Buscar por ID directo si fue enviado por la app
     if (existingFolderId) {
       try {
         guestFolder = DriveApp.getFolderById(existingFolderId);
@@ -57,8 +60,8 @@ function doPost(e) {
       }
     }
 
+    // B) Buscar por deviceId en los metadatos de las carpetas existentes
     if (!guestFolder && deviceId) {
-      // Buscar si ya existe una subcarpeta para este dispositivo
       const subfolders = mainFolder.getFolders();
       while (subfolders.hasNext()) {
         const sf = subfolders.next();
@@ -75,8 +78,20 @@ function doPost(e) {
       }
     }
 
+    // C) Fallback: Si no se encontró por deviceId, buscar por nombre del invitado
+    if (!guestFolder && safeGuestName) {
+      const subfolders = mainFolder.getFolders();
+      while (subfolders.hasNext()) {
+        const sf = subfolders.next();
+        const sfName = sf.getName();
+        if (sfName.startsWith(safeGuestName + " (") || sfName.toLowerCase() === safeGuestName.toLowerCase()) {
+          guestFolder = sf;
+          break;
+        }
+      }
+    }
+
     const now = new Date();
-    const safeGuestName = guestName.replace(/[\/\\:*?"<>|]/g, "_");
 
     if (!guestFolder) {
       const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd_HH-mm");
@@ -85,7 +100,7 @@ function doPost(e) {
       guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     }
 
-    // Guardar o actualizar metadatos con deviceId en la descripción de la carpeta
+    // Guardar o actualizar metadatos iniciales con deviceId en la descripción
     try {
       guestFolder.setDescription(JSON.stringify({
         guestName: guestName,
@@ -151,31 +166,49 @@ function doPost(e) {
       }
     }
 
-    // Actualizar metadatos de la carpeta con fotos para lectura instantánea
+    // Actualizar metadatos de la carpeta con fotos acumuladas y deviceId para lectura instantánea
+    var allPhotos = savedPhotos;
+    var finalComment = comment;
     try {
+      const oldDesc = guestFolder.getDescription();
+      if (oldDesc && oldDesc.startsWith("{")) {
+        const oldParsed = JSON.parse(oldDesc);
+        if (oldParsed.photos && Array.isArray(oldParsed.photos) && oldParsed.photos.length > 0) {
+          const newNames = new Set(savedPhotos.map(function(p) { return p.name; }));
+          const prior = oldParsed.photos.filter(function(p) { return !newNames.has(p.name); });
+          allPhotos = prior.concat(savedPhotos);
+        }
+        if (!finalComment && oldParsed.comment) {
+          finalComment = oldParsed.comment;
+        }
+      }
+
       guestFolder.setDescription(JSON.stringify({
         guestName: guestName,
-        comment: comment,
-        photos: savedPhotos,
+        comment: finalComment,
+        deviceId: deviceId,
+        photos: allPhotos,
         date: now.toISOString()
       }));
-    } catch (e) { }
+    } catch (e) {
+      Logger.log("Aviso actualizando descripción: " + e.toString());
+    }
 
-    Logger.log("✅ [doPost] Finalizado con éxito para " + guestName + ". Carpeta: " + guestFolder.getName());
+    Logger.log("✅ [doPost] Finalizado con éxito para " + guestName + ". Carpeta: " + guestFolder.getName() + " (Total fotos: " + allPhotos.length + ")");
 
     // 5. Retornar respuesta exitosa con la URL del álbum de Google Fotos
     return responseJSON({
       status: "success",
       message: "Recuerdos guardados exitosamente en Google Fotos y Drive",
       guestName: guestName,
-      comment: comment,
+      comment: finalComment,
       googlePhotosAlbumId: GOOGLE_PHOTOS_ALBUM_ID,
       googlePhotosAlbumUrl: GOOGLE_PHOTOS_ALBUM_URL,
       folderId: guestFolder.getId(),
       folderUrl: guestFolder.getUrl(),
-      folderName: guestFolderName,
-      photosCount: savedPhotos.length,
-      photos: savedPhotos,
+      folderName: guestFolder.getName(),
+      photosCount: allPhotos.length,
+      photos: allPhotos,
       timestamp: now.toISOString()
     });
 

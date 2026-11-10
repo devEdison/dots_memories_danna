@@ -342,11 +342,18 @@ class StorageService {
           });
         }
 
+        String? targetGoogleFolderId = existingFolder?.googleFolderId;
+        if (targetGoogleFolderId == null || targetGoogleFolderId.isEmpty) {
+          if (existingFolder != null && !existingFolder.id.startsWith('folder_')) {
+            targetGoogleFolderId = existingFolder.id;
+          }
+        }
+
         final payload = jsonEncode({
           'guestName': targetGuestName,
           'comment': targetComment,
           'deviceId': deviceId,
-          'folderId': existingFolder?.googleFolderId,
+          'folderId': targetGoogleFolderId,
           'photos': photosPayload,
         });
 
@@ -421,12 +428,27 @@ class StorageService {
 
     // Actualizar la carpeta en la lista (reemplazar si existía o insertar al inicio)
     final currentList = List<MemoryFolder>.from(foldersNotifier.value);
-    final existingIndex = currentList.indexWhere((f) => f.id == activeFolder.id);
+    final existingIndex = currentList.indexWhere((f) =>
+        f.id == activeFolder.id ||
+        (activeFolder.googleFolderId != null && f.googleFolderId == activeFolder.googleFolderId) ||
+        (activeFolder.googleFolderId != null && f.id == activeFolder.googleFolderId) ||
+        (f.deviceId != null && f.deviceId == deviceId));
+
     if (existingIndex != -1) {
       currentList[existingIndex] = activeFolder;
     } else {
       currentList.insert(0, activeFolder);
     }
+
+    // Limpiar duplicados accidentales para este dispositivo
+    final seenIds = <String>{};
+    currentList.retainWhere((f) {
+      if (f.id == activeFolder.id) return true;
+      if (f.deviceId != null && f.deviceId == deviceId && f.id != activeFolder.id) {
+        return false;
+      }
+      return seenIds.add(f.id);
+    });
     foldersNotifier.value = currentList;
     await _saveFoldersToDisk();
 
@@ -588,11 +610,44 @@ class StorageService {
           }
 
           if (loadedFolders.isNotEmpty) {
+            // Consolidar carpetas del mismo dispositivo para que el invitado siempre vea sus fotos unificadas
+            final consolidated = <String, MemoryFolder>{};
+            for (final f in loadedFolders) {
+              final isThisDevice = (f.deviceId != null && f.deviceId!.isNotEmpty && f.deviceId == deviceId) ||
+                  (myFolderIdsNotifier.value.contains(f.id)) ||
+                  (f.googleFolderId != null && myFolderIdsNotifier.value.contains(f.googleFolderId!));
+
+              final key = isThisDevice ? 'my_device_$deviceId' : (f.googleFolderId ?? f.id);
+
+              if (consolidated.containsKey(key)) {
+                final existing = consolidated[key]!;
+                final existingNames = existing.photos.map((p) => p.fileName).toSet();
+                final mergedPhotos = List<MemoryItem>.from(existing.photos);
+                for (final p in f.photos) {
+                  if (!existingNames.contains(p.fileName)) {
+                    mergedPhotos.add(p);
+                    existingNames.add(p.fileName);
+                  }
+                }
+                consolidated[key] = existing.copyWith(
+                  photos: mergedPhotos,
+                  timestamp: f.timestamp.isAfter(existing.timestamp) ? f.timestamp : existing.timestamp,
+                  comment: existing.comment.isNotEmpty ? existing.comment : f.comment,
+                  googleFolderId: existing.googleFolderId ?? f.googleFolderId,
+                  folderUrl: existing.folderUrl ?? f.folderUrl,
+                  deviceId: deviceId,
+                );
+              } else {
+                consolidated[key] = f;
+              }
+            }
+
+            final finalFolders = consolidated.values.toList();
             // Ordenar con las más recientes primero
-            loadedFolders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-            foldersNotifier.value = loadedFolders;
+            finalFolders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            foldersNotifier.value = finalFolders;
             await _saveFoldersToDisk();
-            return loadedFolders.length;
+            return finalFolders.length;
           }
         }
       }
