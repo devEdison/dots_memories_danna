@@ -258,11 +258,14 @@ function doGet(e) {
     const action = e && e.parameter ? e.parameter.action : "ping";
 
     if (action === "ping") {
+      const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
       return responseJSON({
         status: "ok",
-        message: "Backend de Google Fotos activo para 15 Años de Danna",
+        message: "Backend de Google Fotos y Google Drive activo para 15 Años de Danna",
         albumId: GOOGLE_PHOTOS_ALBUM_ID,
         albumUrl: GOOGLE_PHOTOS_ALBUM_URL,
+        mainDriveFolderUrl: mainFolder.getUrl(),
+        mainDriveFolderName: MAIN_DRIVE_FOLDER_NAME,
         time: new Date().toISOString()
       });
     }
@@ -343,6 +346,8 @@ function doGet(e) {
         status: "success",
         count: memories.length,
         googlePhotosAlbumUrl: GOOGLE_PHOTOS_ALBUM_URL,
+        mainDriveFolderUrl: mainFolder.getUrl(),
+        mainDriveFolderName: MAIN_DRIVE_FOLDER_NAME,
         memories: memories
       });
     }

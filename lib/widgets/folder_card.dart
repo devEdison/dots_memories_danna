@@ -130,7 +130,7 @@ class FolderCard extends StatelessWidget {
                                     const Icon(Icons.cloud_done_rounded, size: 11, color: AppTheme.sageDark),
                                     const SizedBox(width: 3),
                                     Text(
-                                      'Google Nube',
+                                      'Google Drive',
                                       style: GoogleFonts.poppins(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w600,

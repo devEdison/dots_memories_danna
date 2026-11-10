@@ -14,6 +14,7 @@ class EventHeader extends StatelessWidget {
   final VoidCallback onSettingsPressed;
   final VoidCallback onUnlockPressed;
   final VoidCallback onGooglePhotosPressed;
+  final VoidCallback? onGoogleDrivePressed;
   final VoidCallback? onRefreshPressed;
   final bool isSyncing;
   final String activeTab;
@@ -31,6 +32,7 @@ class EventHeader extends StatelessWidget {
     required this.onSettingsPressed,
     required this.onUnlockPressed,
     required this.onGooglePhotosPressed,
+    this.onGoogleDrivePressed,
     this.onRefreshPressed,
     this.isSyncing = false,
     required this.activeTab,
@@ -168,6 +170,15 @@ class EventHeader extends StatelessWidget {
                               onTap: onGooglePhotosPressed,
                             ),
                             const SizedBox(width: 8),
+                            if (onGoogleDrivePressed != null) ...[
+                              _buildIconButton(
+                                icon: Icons.folder_shared_rounded,
+                                label: isCompact ? null : 'Google Drive',
+                                tooltip: 'Abrir carpeta del evento en Google Drive (Mi Unidad > 15 Años Danna - Fotos de Invitados)',
+                                onTap: onGoogleDrivePressed,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
                             _buildIconButton(
                               icon: Icons.qr_code_rounded,
                               label: isCompact ? null : 'Llave QR',

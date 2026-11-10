@@ -8,6 +8,7 @@ class AppConfig {
   bool requireAccessKey;
   String googlePhotosAlbumUrl;
   String googlePhotosAlbumId;
+  String googleDriveFolderUrl;
   String appwriteEndpoint;
   String appwriteProjectId;
   String appwriteBucketId;
@@ -24,6 +25,8 @@ class AppConfig {
     this.googlePhotosAlbumUrl =
         'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
     this.googlePhotosAlbumId = 'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+    this.googleDriveFolderUrl =
+        'https://drive.google.com/drive/search?q=15%20A%C3%B1os%20Danna',
     this.appwriteEndpoint = 'https://fra.cloud.appwrite.io/v1',
     this.appwriteProjectId = 'danna15-memories',
     this.appwriteBucketId = 'photos',
@@ -40,6 +43,7 @@ class AppConfig {
       'requireAccessKey': requireAccessKey,
       'googlePhotosAlbumUrl': googlePhotosAlbumUrl,
       'googlePhotosAlbumId': googlePhotosAlbumId,
+      'googleDriveFolderUrl': googleDriveFolderUrl,
       'appwriteEndpoint': appwriteEndpoint,
       'appwriteProjectId': appwriteProjectId,
       'appwriteBucketId': appwriteBucketId,
@@ -64,6 +68,8 @@ class AppConfig {
           'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
       googlePhotosAlbumId: json['googlePhotosAlbumId'] as String? ??
           'AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
+      googleDriveFolderUrl: json['googleDriveFolderUrl'] as String? ??
+          'https://drive.google.com/drive/search?q=15%20A%C3%B1os%20Danna',
       appwriteEndpoint: json['appwriteEndpoint'] as String? ?? 'https://fra.cloud.appwrite.io/v1',
       appwriteProjectId: json['appwriteProjectId'] as String? ?? 'danna15-memories',
       appwriteBucketId: json['appwriteBucketId'] as String? ?? 'photos',

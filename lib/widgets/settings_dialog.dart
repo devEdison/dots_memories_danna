@@ -420,6 +420,72 @@ function responseJSON(obj) {
 
                     const SizedBox(height: 12),
 
+                    // Tarjeta de Carpeta Principal en Google Drive
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppTheme.sageBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Carpeta Principal en Google Drive',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AppTheme.sageDeep,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Ruta: Mi Unidad > 15 Años Danna - Fotos de Invitados',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.sageDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.storageService.config.googleDriveFolderUrl,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: AppTheme.mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ElevatedButton.icon(
+                            onPressed: () => DownloadHelper.openUrl(
+                              widget.storageService.config.googleDriveFolderUrl,
+                            ),
+                            icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                            label: const Text('Abrir Carpeta en Google Drive'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.sageDark,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

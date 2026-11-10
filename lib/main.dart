@@ -275,6 +275,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               OutlinedButton.icon(
+                                onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
+                                icon: const Icon(Icons.folder_shared_rounded, size: 14),
+                                label: Text(isMobile ? 'Drive' : 'Google Drive 📁'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(color: Colors.white54),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -329,10 +340,172 @@ class _HomeScreenState extends State<HomeScreen> {
                           onSettingsPressed: _openSettingsDialog,
                           onUnlockPressed: _openUnlockDialog,
                           onGooglePhotosPressed: () => DownloadHelper.openUrl(widget.storageService.config.googlePhotosAlbumUrl),
+                          onGoogleDrivePressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
                           isSyncing: isSyncing,
                           onRefreshPressed: _handleManualSync,
                         );
                       },
+                    ),
+                  ),
+
+                  // TARJETA DE RUTA GOOGLE DRIVE PARA ANFITRIÓN
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        margin: EdgeInsets.only(
+                          top: 18,
+                          left: isMobile ? 16 : 36,
+                          right: isMobile ? 16 : 36,
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppTheme.sageBorder, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.sageGreen.withAlpha(20),
+                              blurRadius: 15,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: isMobile
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: const BoxDecoration(
+                                          color: AppTheme.sageLight,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 20),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Ruta en Google Drive:',
+                                              style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
+                                            ),
+                                            Text(
+                                              'Mi Unidad > 15 Años Danna - Fotos de Invitados',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.sageDeep,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 42,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
+                                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                      label: Text(
+                                        'Abrir Carpeta en Google Drive ↗',
+                                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.sageDark,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.sageLight,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 24),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Ruta de Respaldos en Google Drive:',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.mutedText,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.sageLight,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                'Nube Conectada ☁️',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.sageDark,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        SelectableText(
+                                          'Mi Unidad > 15 Años Danna - Fotos de Invitados',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.sageDeep,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Cada invitado tiene su propia subcarpeta con fotos originales en alta resolución.',
+                                          style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  ElevatedButton.icon(
+                                    onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
+                                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                    label: Text(
+                                      'Abrir Carpeta en Google Drive ↗',
+                                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.sageDark,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      elevation: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
 

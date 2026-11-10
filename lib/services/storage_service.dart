@@ -470,6 +470,15 @@ class StorageService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Actualizar URL directa de la carpeta principal de Google Drive si viene en la respuesta
+        final driveUrl = data['mainDriveFolderUrl'] as String?;
+        if (driveUrl != null && driveUrl.isNotEmpty && driveUrl != currentConfig.googleDriveFolderUrl) {
+          currentConfig.googleDriveFolderUrl = driveUrl;
+          configNotifier.value = currentConfig;
+          saveConfig(currentConfig);
+        }
+
         final memoriesList = data['memories'] as List<dynamic>?;
 
         if (memoriesList != null && memoriesList.isNotEmpty) {
@@ -628,6 +637,13 @@ class StorageService {
       if (res.statusCode == 200) {
         final json = jsonDecode(res.body) as Map<String, dynamic>;
         if (json['status'] == 'ok') {
+          final driveUrl = json['mainDriveFolderUrl'] as String?;
+          if (driveUrl != null && driveUrl.isNotEmpty) {
+            final c = configNotifier.value;
+            c.googleDriveFolderUrl = driveUrl;
+            configNotifier.value = c;
+            saveConfig(c);
+          }
           return {
             'success': true,
             'message': '¡Conexión exitosa! El backend de Google Drive/Fotos respondió correctamente.',

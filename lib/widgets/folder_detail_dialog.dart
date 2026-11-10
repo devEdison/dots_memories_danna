@@ -228,7 +228,15 @@ class FolderDetailDialog extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      'Toca aquí para abrir la carpeta original y ver todas las fotos en Google',
+                                      'Ruta: Mi Unidad > 15 Años Danna - Fotos de Invitados > ${folder.guestName}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.sageDark,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Toca aquí para abrir la subcarpeta original en Google Drive',
                                       style: GoogleFonts.poppins(
                                         fontSize: 11,
                                         color: AppTheme.mutedText,
