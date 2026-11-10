@@ -36,7 +36,7 @@ class QrCodeDialog extends StatelessWidget {
 
   void _shareWhatsApp(String url) {
     final message = Uri.encodeComponent(
-      '👑✨ ¡Hola! Entra aquí para subir y compartir tus fotos y videos en los 15 Años de Danna: $url',
+      '👑✨ ¡Hola! Entra aquí para subir y compartir tus fotos y videos en los 15 Años de Danna Alejandra: $url',
     );
     DownloadHelper.openUrl('https://api.whatsapp.com/send?text=$message');
   }
@@ -140,7 +140,7 @@ class QrCodeDialog extends StatelessWidget {
                         const Text('👑', style: TextStyle(fontSize: 34)),
                         const SizedBox(height: 6),
                         Text(
-                          'Mis 15 Años • Danna',
+                          'Mis 15 Años • Danna Alejandra',
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,

@@ -1,11 +1,11 @@
 {
-    "name": "Mis 15 Años - Danna | Dots Memories",
+    "name": "Mis 15 Años - Danna Alejandra | Dots Memories",
     "short_name": "Danna XV",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#F7FAF7",
     "theme_color": "#6E8B74",
-    "description": "Comparte tus fotos y dedicatorias para los 15 años de Danna. ¡Sube todos tus recuerdos y momentos especiales!",
+    "description": "Comparte tus fotos y dedicatorias para los 15 años de Danna Alejandra. ¡Sube todos tus recuerdos y momentos especiales!",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

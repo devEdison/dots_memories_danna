@@ -399,9 +399,9 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: 'Danna 🌸',
+                                  text: 'Danna Alejandra 🌸',
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: isMobile ? 26 : 34,
+                                    fontSize: isMobile ? 24 : 32,
                                     fontWeight: FontWeight.w800,
                                     color: AppTheme.deepRose,
                                   ),
@@ -425,7 +425,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Aquí solo tú puedes ver tus fotos y videos subidos, y agregar todos los recuerdos que desees para Danna.',
+                            'Aquí solo tú puedes ver tus fotos y videos subidos, y agregar todos los recuerdos que desees para Danna Alejandra.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.poppins(
                               fontSize: 12,
@@ -619,7 +619,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 480),
                             child: Text(
-                              '¡Sé el primero en dejarle un hermoso recuerdo a Danna en sus 15 años! Comparte todas las fotos y videos que tomaste durante la celebración.',
+                              '¡Sé el primero en dejarle un hermoso recuerdo a Danna Alejandra en sus 15 años! Comparte todas las fotos y videos que tomaste durante la celebración.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(color: AppTheme.mutedText, fontSize: 13),
                             ),
@@ -880,7 +880,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                     child: TextButton.icon(
                       onPressed: _showHostLoginDialog,
                       icon: const Icon(Icons.admin_panel_settings_outlined, size: 16),
-                      label: const Text('¿Eres el Anfitrión o Familia de Danna? Iniciar sesión aquí'),
+                      label: const Text('¿Eres el Anfitrión o Familia de Danna Alejandra? Iniciar sesión aquí'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppTheme.mutedText,
                         textStyle: GoogleFonts.poppins(fontSize: 12),

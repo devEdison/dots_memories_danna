@@ -16,9 +16,9 @@ class AppConfig {
     this.googleScriptUrl =
         'https://script.google.com/macros/s/AKfycbzeQ_sLwh-FkZh4YvmTh1YGRPa9GlpcwwOJEf9UiiWXTf3A-rpfJaXiXw1DBM88pDnN/exec',
     this.useGoogleBackend = true,
-    this.eventTitle = 'Mis 15 Años • Danna 👑✨',
+    this.eventTitle = 'Mis 15 Años • Danna Alejandra 👑✨',
     this.eventDate = '2026-11-04',
-    this.quinceaneraName = 'Danna',
+    this.quinceaneraName = 'Danna Alejandra',
     this.accessKey = 'DANNA15',
     this.requireAccessKey = true,
     this.googlePhotosAlbumUrl =
@@ -55,9 +55,9 @@ class AppConfig {
     return AppConfig(
       googleScriptUrl: scriptUrl,
       useGoogleBackend: json['useGoogleBackend'] as bool? ?? true,
-      eventTitle: json['eventTitle'] as String? ?? 'Mis 15 Años • Danna 👑✨',
+      eventTitle: json['eventTitle'] as String? ?? 'Mis 15 Años • Danna Alejandra 👑✨',
       eventDate: json['eventDate'] as String? ?? '2026-11-04',
-      quinceaneraName: json['quinceaneraName'] as String? ?? 'Danna',
+      quinceaneraName: json['quinceaneraName'] as String? ?? 'Danna Alejandra',
       accessKey: json['accessKey'] as String? ?? 'DANNA15',
       requireAccessKey: json['requireAccessKey'] as bool? ?? true,
       googlePhotosAlbumUrl: json['googlePhotosAlbumUrl'] as String? ??

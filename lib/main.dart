@@ -49,7 +49,7 @@ class DotsMemoriesApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mis 15 Años - Danna | Dots Memories',
+      title: 'Mis 15 Años - Danna Alejandra | Dots Memories',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
       home: ValueListenableBuilder<bool>(
@@ -647,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Text('👑 🌸 🌿', style: TextStyle(fontSize: 26)),
                             const SizedBox(height: 8),
                             Text(
-                              'Mis 15 Años • Danna',
+                              'Mis 15 Años • Danna Alejandra',
                               style: GoogleFonts.playfairDisplay(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -656,7 +656,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Dots Memories • Mis 15 Años Danna • Álbum Digital de Recuerdos 👑✨',
+                              'Dots Memories • Mis 15 Años Danna Alejandra • Álbum Digital de Recuerdos 👑✨',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: AppTheme.mutedText,

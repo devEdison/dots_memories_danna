@@ -43,7 +43,7 @@ void main() {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Tarjetas de Mesa - Mis 15 Años Danna 👑</title>
+  <title>Tarjetas de Mesa - Mis 15 Años Danna Alejandra 👑</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -254,7 +254,7 @@ void main() {
 <body>
 
   <div class="no-print-bar">
-    <span>✨ <strong>Plantilla de Tarjetas Físicas de Mesa</strong> — Mis 15 Años Danna</span>
+    <span>✨ <strong>Plantilla de Tarjetas Físicas de Mesa</strong> — Mis 15 Años Danna Alejandra</span>
     <button onclick="window.print()">🖨️ Imprimir Tarjetas Ahora</button>
   </div>
 
@@ -265,7 +265,7 @@ void main() {
         <div class="card-inner">
           <div class="crown-icon">👑</div>
           <h1 class="card-title">Mis 15 Años</h1>
-          <div class="card-subtitle">Danna Sofía 🌸</div>
+          <div class="card-subtitle">Danna Alejandra 🌸</div>
           <div class="instruction-badge">Álbum Digital de Recuerdos</div>
 
           <div class="qr-container">
@@ -302,7 +302,7 @@ void main() {
         <div class="card-inner">
           <div class="crown-icon">👑</div>
           <h1 class="card-title">Mis 15 Años</h1>
-          <div class="card-subtitle">Danna Sofía 🌸</div>
+          <div class="card-subtitle">Danna Alejandra 🌸</div>
           <div class="instruction-badge">Álbum Digital de Recuerdos</div>
 
           <div class="qr-container">

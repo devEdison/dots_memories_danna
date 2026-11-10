@@ -236,9 +236,9 @@ class EventHeader extends StatelessWidget {
                           ),
                         ),
                         TextSpan(
-                          text: 'Danna 🌸',
+                          text: 'Danna Alejandra 🌸',
                           style: GoogleFonts.playfairDisplay(
-                            fontSize: isMobile ? 32 : 48,
+                            fontSize: isMobile ? 30 : 44,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.deepRose,
                             letterSpacing: -0.5,

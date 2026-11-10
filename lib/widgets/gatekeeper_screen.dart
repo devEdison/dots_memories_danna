@@ -169,9 +169,9 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                 ),
                               ),
                               TextSpan(
-                                text: 'Danna 🌸',
+                                text: 'Danna Alejandra 🌸',
                                 style: GoogleFonts.playfairDisplay(
-                                  fontSize: 26,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w800,
                                   color: AppTheme.deepRose,
                                 ),
@@ -245,7 +245,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Ingresa el código de tu tarjeta QR para entrar a tu espacio privado donde podrás subir tus fotos, videos y dedicatoria para Danna.',
+                                'Ingresa el código de tu tarjeta QR para entrar a tu espacio privado donde podrás subir tus fotos, videos y dedicatoria para Danna Alejandra.',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppTheme.mutedText,
@@ -310,7 +310,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Acceso para Danna y su familia mediante autenticación segura.',
+                                'Acceso para Danna Alejandra y su familia mediante autenticación segura.',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppTheme.mutedText,

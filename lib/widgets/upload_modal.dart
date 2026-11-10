@@ -184,7 +184,7 @@ class _UploadModalState extends State<UploadModal> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '¡Tus fotos y dedicatoria han sido guardadas con éxito para Danna! 👑🌸',
+                    '¡Tus fotos y dedicatoria han sido guardadas con éxito para Danna Alejandra! 👑🌸',
                     style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -281,7 +281,7 @@ class _UploadModalState extends State<UploadModal> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Subir Fotos y Videos para Danna',
+                                    'Subir Fotos y Videos para Danna Alejandra',
                                     style: GoogleFonts.playfairDisplay(
                                       fontSize: isMobile ? 18 : 22,
                                       fontWeight: FontWeight.bold,
@@ -339,7 +339,7 @@ class _UploadModalState extends State<UploadModal> {
                                   ),
                                   validator: (v) {
                                     if (v == null || v.trim().isEmpty) {
-                                      return 'Por favor escribe tu nombre para que Danna sepa quién lo subió';
+                                      return 'Por favor escribe tu nombre para que Danna Alejandra sepa quién lo subió';
                                     }
                                     return null;
                                   },
@@ -349,7 +349,7 @@ class _UploadModalState extends State<UploadModal> {
 
                                 // Dedicatoria
                                 Text(
-                                  'Dedicatoria o Mensaje para Danna',
+                                  'Dedicatoria o Mensaje para Danna Alejandra',
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -661,7 +661,7 @@ class _UploadModalState extends State<UploadModal> {
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                'Guardando recuerdos para Danna...',
+                                'Guardando recuerdos para Danna Alejandra...',
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
