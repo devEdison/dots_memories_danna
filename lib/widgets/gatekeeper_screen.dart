@@ -256,8 +256,8 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                 controller: _keyController,
                                 textCapitalization: TextCapitalization.characters,
                                 decoration: InputDecoration(
-                                  labelText: 'Código de Invitado (Ej: DANNA15)',
-                                  hintText: 'DANNA15',
+                                  labelText: 'Código de Invitado',
+                                  hintText: '••••••••',
                                   prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppTheme.sageGreen),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                                   errorText: _guestError,

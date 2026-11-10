@@ -182,8 +182,8 @@ class _AccessKeyDialogState extends State<AccessKeyDialog> {
                     controller: _keyController,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      labelText: 'Clave de Acceso (Ej. DANNA15)',
-                      hintText: 'Ingresa la clave...',
+                      labelText: 'Clave de Acceso',
+                      hintText: '••••••••',
                       prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppTheme.sageGreen),
                       errorText: _errorMessage,
                     ),

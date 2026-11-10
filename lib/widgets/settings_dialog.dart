@@ -315,7 +315,7 @@ function responseJSON(obj) {
                             textCapitalization: TextCapitalization.characters,
                             decoration: InputDecoration(
                               labelText: 'Clave de Acceso (se incluye en el QR)',
-                              hintText: 'DANNA15',
+                              hintText: 'Clave personalizada...',
                               prefixIcon: const Icon(Icons.key_rounded, color: AppTheme.dustyPink),
                             ),
                           ),
