@@ -174,3 +174,4 @@ class AppwriteAuthService {
     isLoadingNotifier.value = false;
   }
 }
+

@@ -209,3 +209,4 @@ class VideoPlayerDialog extends StatelessWidget {
     );
   }
 }
+

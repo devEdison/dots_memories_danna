@@ -464,13 +464,12 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
 
               // CONTENIDO DE RECUERDOS DEL INVITADO
               if (myFolders.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
+                SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(24),

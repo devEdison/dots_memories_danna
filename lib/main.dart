@@ -395,39 +395,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   // VISTA 1: CARPETAS DE INVITADOS (MODO DEFAULT)
                   if (_activeTab == 'folders') ...[
                     if (filteredFolders.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
+                      SliverToBoxAdapter(
                         child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: const BoxDecoration(
-                                  color: AppTheme.softPinkBg,
-                                  shape: BoxShape.circle,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.softPinkBg,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Text('🌸', style: TextStyle(fontSize: 40)),
                                 ),
-                                child: const Text('🌸', style: TextStyle(fontSize: 40)),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'Aún no hay recuerdos subidos'
-                                    : 'No se encontraron recuerdos para "$_searchQuery"',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.sageDeep,
+                                const SizedBox(height: 16),
+                                Text(
+                                  _searchQuery.isEmpty
+                                      ? 'Aún no hay recuerdos subidos'
+                                      : 'No se encontraron recuerdos para "$_searchQuery"',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.sageDeep,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? '¡Comparte el QR con los invitados para que comiencen a subir fotos!'
-                                    : 'Intenta con otro término de búsqueda',
-                                style: GoogleFonts.poppins(color: AppTheme.mutedText, fontSize: 13),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                Text(
+                                  _searchQuery.isEmpty
+                                      ? '¡Comparte el QR con los invitados para que comiencen a subir fotos!'
+                                      : 'Intenta con otro término de búsqueda',
+                                  style: GoogleFonts.poppins(color: AppTheme.mutedText, fontSize: 13),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       )
@@ -481,19 +483,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   // VISTA 2: MURO DE FOTOS GENERAL (WALL)
                   if (_activeTab == 'wall') ...[
                     if (filteredWall.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
+                      SliverToBoxAdapter(
                         child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.photo_library_outlined, size: 50, color: AppTheme.dustyPink),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No hay fotos en el muro',
-                                style: GoogleFonts.playfairDisplay(fontSize: 20, color: AppTheme.sageDeep),
-                              ),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.photo_library_outlined, size: 50, color: AppTheme.dustyPink),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No hay fotos en el muro',
+                                  style: GoogleFonts.playfairDisplay(fontSize: 20, color: AppTheme.sageDeep),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       )

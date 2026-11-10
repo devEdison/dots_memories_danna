@@ -341,3 +341,4 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
     );
   }
 }
+
