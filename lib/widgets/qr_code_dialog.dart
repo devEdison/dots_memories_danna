@@ -17,7 +17,11 @@ class QrCodeDialog extends StatelessWidget {
   }
 
   void _printQr() {
-    DownloadHelper.printPage();
+    DownloadHelper.openUrl('tarjeta_mesa_qr.html');
+  }
+
+  void _downloadPdf() {
+    DownloadHelper.openUrl('tarjeta_mesa_qr.pdf');
   }
 
   void _copyLink(BuildContext context, String url) {
@@ -248,6 +252,31 @@ class QrCodeDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
+                  // Botón directo para imprimir tarjeta de mesa física
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: _printQr,
+                      icon: const Icon(Icons.print_rounded, size: 18, color: Colors.white),
+                      label: Text(
+                        'Imprimir Tarjetas para Mesas (Físico) 🖨️',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.sageDark,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
                   Row(
                     children: [
                       Expanded(
@@ -265,13 +294,13 @@ class QrCodeDialog extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _printQr,
-                          icon: const Icon(Icons.print_rounded, size: 16),
-                          label: const Text('Imprimir'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.sageGreen,
-                            foregroundColor: Colors.white,
+                        child: OutlinedButton.icon(
+                          onPressed: _downloadPdf,
+                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: AppTheme.deepRose),
+                          label: const Text('Bajar PDF 📄'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.deepRose,
+                            side: const BorderSide(color: AppTheme.pinkBorder),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
