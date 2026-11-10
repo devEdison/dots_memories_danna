@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
@@ -200,7 +201,7 @@ class EventHeader extends StatelessWidget {
 
                   const SizedBox(height: 22),
 
-                  // Corona e icono floral
+                  // Corona e icono floral con animación
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -215,20 +216,39 @@ class EventHeader extends StatelessWidget {
                       ],
                     ),
                     child: const Text('👑', style: TextStyle(fontSize: 38)),
-                  ),
+                  )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
                   const SizedBox(height: 12),
 
-                  // Título principal con toque Salvia & Rosado
-                  Text(
-                    'Mis 15 Años • Danna',
+                  // Título principal con efecto Shimmer para Danna
+                  RichText(
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: isMobile ? 32 : 46,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.sageDeep,
-                      letterSpacing: -0.5,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Mis 15 Años • ',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: isMobile ? 30 : 46,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.sageDeep,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'Danna 🌸',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: isMobile ? 32 : 48,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.deepRose,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .shimmer(duration: 2800.ms, color: const Color(0xFFFFDCE5)),
                   const SizedBox(height: 6),
 
                   Text(

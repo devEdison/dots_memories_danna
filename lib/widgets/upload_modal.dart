@@ -160,9 +160,15 @@ class _UploadModalState extends State<UploadModal> {
       return;
     }
 
+    // Sanitización y límites de seguridad
+    final rawName = _nameController.text.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    final rawComment = _commentController.text.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    final safeName = rawName.length > 50 ? rawName.substring(0, 50) : (rawName.isEmpty ? 'Invitado Especial' : rawName);
+    final safeComment = rawComment.length > 800 ? rawComment.substring(0, 800) : rawComment;
+
     final success = await widget.storageService.uploadMemories(
-      guestName: _nameController.text,
-      comment: _commentController.text,
+      guestName: safeName,
+      comment: safeComment,
       files: List.from(_selectedFiles),
     );
 

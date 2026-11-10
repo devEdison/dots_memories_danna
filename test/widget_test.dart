@@ -11,7 +11,7 @@ void main() {
       storageService: storageService,
       authService: authService,
     ));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.textContaining('Danna'), findsWidgets);
   });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/memory_folder.dart';
@@ -104,9 +105,10 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final name = _linkNameController.text.trim();
-              if (name.isNotEmpty) {
-                await widget.storageService.setMyGuestName(name);
+              final rawName = _linkNameController.text.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+              if (rawName.isNotEmpty) {
+                final safeName = rawName.length > 50 ? rawName.substring(0, 50) : rawName;
+                await widget.storageService.setMyGuestName(safeName);
                 await widget.storageService.syncMemoriesFromGoogle();
                 if (context.mounted) Navigator.of(context).pop();
               }
@@ -365,15 +367,52 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Corona y Título
-                          Text(
-                            '👑 Mis 15 Años • Danna 🌸',
-                            style: GoogleFonts.playfairDisplay(
-                              fontSize: isMobile ? 22 : 30,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.sageDeep,
+                          // Corona animada de 15 Años
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.pinkBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.blushPink.withAlpha(40),
+                                  blurRadius: 16,
+                                ),
+                              ],
                             ),
-                          ),
+                            child: const Text('👑', style: TextStyle(fontSize: 34)),
+                          )
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
+                          const SizedBox(height: 12),
+
+                          // Título con efecto de Brillo
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Mis 15 Años • ',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: isMobile ? 24 : 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.sageDeep,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Danna 🌸',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: isMobile ? 26 : 34,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.deepRose,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .shimmer(duration: 2600.ms, color: const Color(0xFFFFDCE5)),
                           const SizedBox(height: 6),
                           Text(
                             guestName.isNotEmpty
@@ -381,7 +420,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                 : 'Tu Espacio Privado de Recuerdos ✨',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.poppins(
-                              fontSize: isMobile ? 14 : 16,
+                              fontSize: isMobile ? 13 : 15,
                               fontWeight: FontWeight.w500,
                               color: AppTheme.charcoal,
                             ),
@@ -397,9 +436,9 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Tarjeta de Acción Rápida: Subir Más Fotos y Videos
+                          // Tarjeta de Acción Rápida: Totalmente responsive en celulares y tablets
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(22),
@@ -412,51 +451,105 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                 ),
                               ],
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.softPinkBg,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Text('📸', style: TextStyle(fontSize: 22)),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                            child: isMobile
+                                ? Column(
                                     children: [
-                                      Text(
-                                        'Tus recuerdos subidos:',
-                                        style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.mutedText),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: const BoxDecoration(
+                                              color: AppTheme.softPinkBg,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Text('📸', style: TextStyle(fontSize: 20)),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Tus recuerdos subidos:',
+                                                  style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
+                                                ),
+                                                Text(
+                                                  '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppTheme.sageDeep,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.sageDeep,
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 46,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _openUploadModal,
+                                          icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
+                                          label: Text(
+                                            'Subir Más Fotos y Videos',
+                                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.sageDark,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: const BoxDecoration(
+                                          color: AppTheme.softPinkBg,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Text('📸', style: TextStyle(fontSize: 22)),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Tus recuerdos subidos:',
+                                              style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.mutedText),
+                                            ),
+                                            Text(
+                                              '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.sageDeep,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        onPressed: _openUploadModal,
+                                        icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
+                                        label: Text(
+                                          'Subir Fotos y Videos',
+                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.sageDark,
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                ElevatedButton.icon(
-                                  onPressed: _openUploadModal,
-                                  icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
-                                  label: Text(
-                                    isMobile ? 'Subir' : 'Subir Fotos y Videos',
-                                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.sageDark,
-                                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 20, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ],
                       ),
@@ -657,7 +750,9 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                       shrinkWrap: true,
                                       physics: const NeverScrollableScrollPhysics(),
                                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: isMobile ? 3 : 4,
+                                        crossAxisCount: isMobile
+                                            ? (size.width < 420 ? 2 : 3)
+                                            : (size.width < 900 ? 4 : 5),
                                         crossAxisSpacing: 10,
                                         mainAxisSpacing: 10,
                                         childAspectRatio: 1,

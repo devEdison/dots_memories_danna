@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/appwrite_auth_service.dart';
 import '../services/storage_service.dart';
@@ -47,7 +48,8 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
   }
 
   Future<void> _handleGuestUnlock() async {
-    final entered = _keyController.text.trim();
+    // Sanitizar entrada de código
+    final entered = _keyController.text.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '').trim();
     if (entered.isEmpty) {
       setState(() => _guestError = 'Por favor ingresa tu código de acceso');
       return;
@@ -56,12 +58,20 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
     final success = await widget.storageService.unlockWithKey(entered);
     if (!success) {
       setState(() {
-        _guestError = 'Código de acceso no válido. Verifica el código en tu invitación QR.';
+        _guestError = 'Código de acceso no válido. Verifica el código en tu tarjeta QR.';
       });
     }
   }
 
   Future<void> _handleHostLogin() async {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text.trim();
+
+    if (email.isEmpty || pass.isEmpty) {
+      setState(() => _authError = 'Por favor completa tu correo y contraseña');
+      return;
+    }
+
     setState(() {
       _isLoggingIn = true;
       _authError = null;
@@ -69,15 +79,15 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
 
     final res = await widget.authService.login(
       config: widget.storageService.config,
-      email: _emailController.text,
-      password: _passwordController.text,
+      email: email,
+      password: pass,
     );
 
     if (mounted) {
       setState(() {
         _isLoggingIn = false;
         if (res['success'] != true) {
-          _authError = res['message'] as String? ?? 'Error al iniciar sesión';
+          _authError = res['message'] as String? ?? 'Credenciales incorrectas';
         }
       });
     }
@@ -115,7 +125,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ENCABEZADO
+                  // ENCABEZADO CON EFECTOS DE 15 AÑOS
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -125,6 +135,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                     ),
                     child: Column(
                       children: [
+                        // Corona animada con respiración y brillo
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -133,25 +144,46 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                             border: Border.all(color: AppTheme.pinkBorder),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.dustyPink.withAlpha(40),
-                                blurRadius: 15,
+                                color: AppTheme.dustyPink.withAlpha(50),
+                                blurRadius: 18,
                               ),
                             ],
                           ),
-                          child: const Text('👑', style: TextStyle(fontSize: 32)),
-                        ),
+                          child: const Text('👑', style: TextStyle(fontSize: 34)),
+                        )
+                            .animate(onPlay: (c) => c.repeat(reverse: true))
+                            .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
                         const SizedBox(height: 14),
-                        Text(
-                          'Mis 15 Años • Danna',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.sageDeep,
+
+                        // Título de Danna con efecto Shimmer
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Mis 15 Años • ',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.sageDeep,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Danna 🌸',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.deepRose,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        )
+                            .animate(onPlay: (c) => c.repeat(reverse: true))
+                            .shimmer(duration: 2600.ms, color: const Color(0xFFFFDCE5)),
                         const SizedBox(height: 4),
                         Text(
-                          'Álbum Privado de Recuerdos • Dots Memories',
+                          'Álbum Digital de Recuerdos • Dots Memories ✨',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: AppTheme.mutedText,
@@ -173,12 +205,12 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                       labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
                       tabs: const [
                         Tab(
-                          icon: Icon(Icons.qr_code_2_rounded, size: 20),
+                          icon: Icon(Icons.celebration_rounded, size: 20),
                           text: 'Invitados (QR)',
                         ),
                         Tab(
                           icon: Icon(Icons.admin_panel_settings_rounded, size: 20),
-                          text: 'Anfitrión (Appwrite)',
+                          text: 'Anfitrión',
                         ),
                       ],
                     ),
@@ -188,7 +220,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: SizedBox(
-                      height: 320,
+                      height: 330,
                       child: TabBarView(
                         controller: _tabController,
                         children: [
@@ -197,28 +229,35 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                'Acceso para Invitados 🌸',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.sageDeep,
-                                ),
+                              Row(
+                                children: [
+                                  const Icon(Icons.auto_awesome_rounded, color: AppTheme.dustyPink, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Acceso para Invitados 🌸',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.sageDeep,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Text(
-                                'Ingresa el código que viene impreso en tu tarjeta QR o escanea el código con tu celular para entrar a tu espacio aislado de fotos y videos.',
+                                'Ingresa el código de tu tarjeta QR para entrar a tu espacio privado donde podrás subir tus fotos, videos y dedicatoria para Danna.',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppTheme.mutedText,
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 18),
                               TextField(
                                 controller: _keyController,
                                 textCapitalization: TextCapitalization.characters,
                                 decoration: InputDecoration(
                                   labelText: 'Código de Invitado (Ej: DANNA15)',
+                                  hintText: 'DANNA15',
                                   prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppTheme.sageGreen),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                                   errorText: _guestError,
@@ -233,7 +272,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                   onPressed: _handleGuestUnlock,
                                   icon: const Icon(Icons.lock_open_rounded, color: Colors.white),
                                   label: Text(
-                                    'Entrar a Mi Espacio de Fotos',
+                                    'Entrar a Mi Espacio de Recuerdos ✨',
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
@@ -255,23 +294,29 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                'Iniciar Sesión en Galería General 🔑',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.sageDeep,
-                                ),
+                              Row(
+                                children: [
+                                  const Icon(Icons.shield_rounded, color: AppTheme.sageDark, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Galería General (Anfitrión) 👑',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.sageDeep,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Text(
-                                'Acceso para Danna y su familia mediante el sistema de autenticación de Appwrite.',
+                                'Acceso para Danna y su familia mediante autenticación segura.',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppTheme.mutedText,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 14),
                               TextField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
@@ -282,7 +327,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 10),
                               TextField(
                                 controller: _passwordController,
                                 obscureText: true,
@@ -301,7 +346,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                   style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 12),
                                 ),
                               ],
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 14),
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
@@ -315,7 +360,7 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                         )
                                       : const Icon(Icons.login_rounded, color: Colors.white),
                                   label: Text(
-                                    _isLoggingIn ? 'Verificando con Appwrite...' : 'Iniciar Sesión (Página Principal)',
+                                    _isLoggingIn ? 'Verificando...' : 'Iniciar Sesión (Página Principal)',
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
@@ -344,4 +389,3 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
     );
   }
 }
-

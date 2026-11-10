@@ -656,7 +656,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Dots Memories Web • Verde Salvia & Rosado • Fotos y Videos 📸🎬',
+                              'Dots Memories • Mis 15 Años Danna • Álbum Digital de Recuerdos 👑✨',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: AppTheme.mutedText,
