@@ -73,26 +73,30 @@ class StorageService {
     return myF.isNotEmpty ? myF.first : null;
   }
 
-  /// Retorna ÚNICAMENTE las carpetas que pertenecen al invitado de este dispositivo
-  List<MemoryFolder> get myFolders {
+  /// Verifica si una carpeta pertenece al invitado actual de este dispositivo
+  bool isFolderOwnedByGuest(MemoryFolder folder) {
     final myIds = myFolderIdsNotifier.value;
     final guestName = myGuestNameNotifier.value.trim().toLowerCase();
 
-    return foldersNotifier.value.where((f) {
-      // 1. Vinculación estricta por ID de dispositivo
-      if (deviceId.isNotEmpty && f.deviceId != null && f.deviceId == deviceId) {
-        return true;
-      }
-      // 2. Vinculación por IDs de carpetas registradas localmente
-      if (myIds.contains(f.id) || (f.googleFolderId != null && myIds.contains(f.googleFolderId))) {
-        return true;
-      }
-      // 3. Vinculación por nombre del invitado de este dispositivo
-      if (guestName.isNotEmpty && f.guestName.trim().toLowerCase() == guestName) {
-        return true;
-      }
-      return false;
-    }).toList();
+    // 1. Vinculación estricta por ID de dispositivo
+    if (deviceId.isNotEmpty && folder.deviceId != null && folder.deviceId == deviceId) {
+      return true;
+    }
+    // 2. Vinculación por IDs de carpetas registradas localmente
+    if (myIds.contains(folder.id) ||
+        (folder.googleFolderId != null && myIds.contains(folder.googleFolderId))) {
+      return true;
+    }
+    // 3. Vinculación por nombre del invitado de este dispositivo
+    if (guestName.isNotEmpty && folder.guestName.trim().toLowerCase() == guestName) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Retorna ÚNICAMENTE las carpetas que pertenecen al invitado de este dispositivo
+  List<MemoryFolder> get myFolders {
+    return foldersNotifier.value.where(isFolderOwnedByGuest).toList();
   }
 
   Future<void> init() async {
@@ -888,18 +892,25 @@ class StorageService {
     );
   }
 
-  /// Elimina una foto o video individual desde el administrador y lo mueve a la papelera en Google Drive
+  bool _matchesPhoto(MemoryItem candidate, MemoryItem target, String? targetFileId) {
+    if (candidate.id == target.id) return true;
+    if (targetFileId != null && targetFileId.isNotEmpty) {
+      if (candidate.id == targetFileId) return true;
+      if (_extractDriveFileId(candidate) == targetFileId) return true;
+    }
+    return false;
+  }
+
+  /// Elimina una foto o video individual (desde Admin o del propio invitado) y lo mueve a la papelera en Google Drive
   Future<({bool success, String message})> deletePhoto(
     MemoryItem photo, {
     MemoryFolder? folderHint,
+    bool requireGuestOwnership = false,
   }) async {
     final currentList = List<MemoryFolder>.from(foldersNotifier.value);
     final extractedFileId = _extractDriveFileId(photo);
-    bool folderContainsPhoto(MemoryFolder f) => f.photos.any(
-          (p) =>
-              p.id == photo.id ||
-              (extractedFileId != null && p.id == extractedFileId),
-        );
+    bool folderContainsPhoto(MemoryFolder f) =>
+        f.photos.any((p) => _matchesPhoto(p, photo, extractedFileId));
 
     MemoryFolder? owningFolder;
     if (folderHint != null) {
@@ -923,6 +934,14 @@ class StorageService {
           break;
         }
       }
+    }
+
+    if (requireGuestOwnership &&
+        (owningFolder == null || !isFolderOwnedByGuest(owningFolder))) {
+      return (
+        success: false,
+        message: 'Solo puedes eliminar las fotos o videos subidos desde tu dispositivo.',
+      );
     }
 
     final targetGoogleFileId = extractedFileId;
@@ -962,27 +981,27 @@ class StorageService {
     }
 
     final updatedList = currentList.map((f) {
-      final containsPhoto = f.photos.any(
-        (p) => p.id == photo.id || (targetGoogleFileId != null && p.id == targetGoogleFileId),
-      );
-      if (!containsPhoto) return f;
-      final remaining = f.photos
-          .where(
-            (p) => p.id != photo.id && (targetGoogleFileId == null || p.id != targetGoogleFileId),
-          )
-          .toList();
+      if (requireGuestOwnership && !isFolderOwnedByGuest(f)) {
+        return f;
+      }
+      if (!folderContainsPhoto(f)) return f;
+      final remaining =
+          f.photos.where((p) => !_matchesPhoto(p, photo, targetGoogleFileId)).toList();
       return f.copyWith(photos: remaining);
     }).toList();
 
     foldersNotifier.value = updatedList;
     await _saveFoldersToDisk();
 
-    final itemLabel = photo.isVideo ? 'Video' : 'Foto';
+    final isVideo = photo.isVideo;
+    final itemLabel = isVideo ? 'Video' : 'Foto';
+    final deletedWord = isVideo ? 'eliminado' : 'eliminada';
+    final movedWord = isVideo ? 'movido' : 'movida';
     return (
       success: true,
       message: shouldDeleteOnDrive
-          ? '$itemLabel eliminado del álbum y movido a la papelera de Google Drive.'
-          : '$itemLabel eliminado del álbum.',
+          ? '$itemLabel $deletedWord del álbum y $movedWord a la papelera de Google Drive.'
+          : '$itemLabel $deletedWord del álbum.',
     );
   }
 

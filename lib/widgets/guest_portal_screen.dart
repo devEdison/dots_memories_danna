@@ -9,6 +9,7 @@ import '../services/appwrite_auth_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'festive_effects.dart';
+import 'media_delete_controls.dart';
 import 'photo_lightbox.dart';
 import 'qr_code_dialog.dart';
 import 'upload_modal.dart';
@@ -53,6 +54,16 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
     );
   }
 
+  Future<bool> _confirmAndDeleteOwnPhoto(MemoryItem item, MemoryFolder folder) {
+    return confirmAndDeleteMedia(
+      context: context,
+      storageService: widget.storageService,
+      item: item,
+      folderHint: folder,
+      requireGuestOwnership: true,
+    );
+  }
+
   void _openPhoto(List<MemoryItem> photos, int index, MemoryFolder folder) {
     final item = photos[index];
     if (item.isVideo) {
@@ -61,6 +72,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
         builder: (context) => VideoPlayerDialog(
           item: item,
           guestName: folder.guestName,
+          onDelete: (deletedItem) => _confirmAndDeleteOwnPhoto(deletedItem, folder),
         ),
       );
     } else {
@@ -71,6 +83,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
           photos: photos,
           initialIndex: index,
           folder: folder,
+          onDeletePhoto: (deletedPhoto) => _confirmAndDeleteOwnPhoto(deletedPhoto, folder),
         ),
       );
     }
@@ -892,72 +905,99 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                   // Cuadrícula de fotos y videos
                                   Padding(
                                     padding: const EdgeInsets.all(20),
-                                    child: GridView.builder(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: isMobile
-                                            ? (size.width < 420 ? 2 : 3)
-                                            : (size.width < 900 ? 4 : 5),
-                                        crossAxisSpacing: 10,
-                                        mainAxisSpacing: 10,
-                                        childAspectRatio: 1,
-                                      ),
-                                      itemCount: folder.photos.length,
-                                      itemBuilder: (context, photoIndex) {
-                                        final photo = folder.photos[photoIndex];
-                                        return InkWell(
-                                          onTap: () => _openPhoto(folder.photos, photoIndex, folder),
-                                          borderRadius: BorderRadius.circular(14),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(14),
-                                              border: Border.all(color: AppTheme.sageBorder),
+                                    child: folder.photos.isEmpty
+                                        ? Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 22,
+                                              horizontal: 16,
                                             ),
-                                            clipBehavior: Clip.antiAlias,
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                if (photo.isVideo)
-                                                  Container(
-                                                    color: const Color(0xFF1E2621),
-                                                    child: const Center(
-                                                      child: Column(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
-                                                          SizedBox(height: 4),
-                                                          Text(
-                                                            'VIDEO',
-                                                            style: TextStyle(
-                                                              color: Colors.white70,
-                                                              fontSize: 10,
-                                                              fontWeight: FontWeight.bold,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.scaffoldBg,
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(color: AppTheme.borderLight),
+                                            ),
+                                            child: Text(
+                                              'No quedan fotos en esta publicación. Toca "Subir Fotos / Videos" para agregar nuevas.',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: AppTheme.mutedText,
+                                              ),
+                                            ),
+                                          )
+                                        : GridView.builder(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: isMobile
+                                                  ? (size.width < 420 ? 2 : 3)
+                                                  : (size.width < 900 ? 4 : 5),
+                                              crossAxisSpacing: 10,
+                                              mainAxisSpacing: 10,
+                                              childAspectRatio: 1,
+                                            ),
+                                            itemCount: folder.photos.length,
+                                            itemBuilder: (context, photoIndex) {
+                                              final photo = folder.photos[photoIndex];
+                                              return InkWell(
+                                                onTap: () => _openPhoto(folder.photos, photoIndex, folder),
+                                                borderRadius: BorderRadius.circular(14),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(14),
+                                                    border: Border.all(color: AppTheme.sageBorder),
+                                                  ),
+                                                  clipBehavior: Clip.antiAlias,
+                                                  child: Stack(
+                                                    fit: StackFit.expand,
+                                                    children: [
+                                                      if (photo.isVideo)
+                                                        Container(
+                                                          color: const Color(0xFF1E2621),
+                                                          child: const Center(
+                                                            child: Column(
+                                                              mainAxisAlignment: MainAxisAlignment.center,
+                                                              children: [
+                                                                Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                                                                SizedBox(height: 4),
+                                                                Text(
+                                                                  'VIDEO',
+                                                                  style: TextStyle(
+                                                                    color: Colors.white70,
+                                                                    fontSize: 10,
+                                                                    fontWeight: FontWeight.bold,
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
                                                           ),
-                                                        ],
+                                                        )
+                                                      else
+                                                        Image(
+                                                          image: photo.thumbnailProvider,
+                                                          fit: BoxFit.cover,
+                                                          gaplessPlayback: true,
+                                                          filterQuality: FilterQuality.medium,
+                                                          errorBuilder: (ctx, err, stack) => Container(
+                                                            color: AppTheme.sageLight,
+                                                            child: const Center(
+                                                              child: Icon(Icons.broken_image_rounded, color: AppTheme.sageGreen),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      MediaTileDeleteButton(
+                                                        onTap: () => _confirmAndDeleteOwnPhoto(photo, folder),
+                                                        tooltip: photo.isVideo
+                                                            ? 'Eliminar mi video'
+                                                            : 'Eliminar mi foto',
                                                       ),
-                                                    ),
-                                                  )
-                                                else
-                                                  Image(
-                                                    image: photo.thumbnailProvider,
-                                                    fit: BoxFit.cover,
-                                                    gaplessPlayback: true,
-                                                    filterQuality: FilterQuality.medium,
-                                                    errorBuilder: (ctx, err, stack) => Container(
-                                                      color: AppTheme.sageLight,
-                                                      child: const Center(
-                                                        child: Icon(Icons.broken_image_rounded, color: AppTheme.sageGreen),
-                                                      ),
-                                                    ),
+                                                    ],
                                                   ),
-                                              ],
-                                            ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
-                                    ),
                                   ),
                                 ],
                               ),

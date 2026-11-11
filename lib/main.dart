@@ -17,6 +17,7 @@ import 'widgets/folder_detail_dialog.dart';
 import 'widgets/gatekeeper_screen.dart';
 import 'widgets/guest_portal_screen.dart';
 import 'widgets/live_slideshow_dialog.dart';
+import 'widgets/media_delete_controls.dart';
 import 'widgets/photo_lightbox.dart';
 import 'widgets/qr_code_dialog.dart';
 import 'widgets/settings_dialog.dart';
@@ -209,119 +210,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<bool> _confirmAndDeletePhoto(
     MemoryItem photo, {
     MemoryFolder? folderHint,
-  }) async {
-    final allFolders = widget.storageService.foldersNotifier.value;
-    MemoryFolder? resolvedFolder;
-    for (final f in allFolders) {
-      if (f.photos.any((p) => p.id == photo.id)) {
-        resolvedFolder = f;
-        break;
-      }
-    }
-    resolvedFolder ??= folderHint;
-    final itemLabel = photo.isVideo ? 'video' : 'foto';
-    final guestLabel = resolvedFolder?.guestName ?? 'este invitado';
-
-    var isDeleting = false;
-    final deleted = await showDialog<bool>(
+  }) {
+    return confirmAndDeleteMedia(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.withAlpha(20),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.delete_forever_rounded,
-                  color: Color(0xFFB91C1C),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  photo.isVideo ? '¿Eliminar este video?' : '¿Eliminar esta foto?',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.sageDeep,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Se eliminará este $itemLabel de "$guestLabel" en el álbum y se moverá a la papelera de Google Drive para que no vuelva a aparecer.',
-            style: GoogleFonts.poppins(fontSize: 13, color: AppTheme.mutedText, height: 1.5),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isDeleting ? null : () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Cancelar',
-                style: GoogleFonts.poppins(
-                  color: AppTheme.mutedText,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB91C1C),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: isDeleting
-                  ? null
-                  : () async {
-                      setDialogState(() => isDeleting = true);
-                      final result = await widget.storageService.deletePhoto(
-                        photo,
-                        folderHint: resolvedFolder,
-                      );
-                      if (!dialogContext.mounted) return;
-                      Navigator.of(dialogContext).pop(result.success);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: result.success
-                                ? AppTheme.sageDeep
-                                : const Color(0xFFB91C1C),
-                            content: Text(
-                              result.message,
-                              style: GoogleFonts.poppins(color: Colors.white),
-                            ),
-                            duration: const Duration(seconds: 4),
-                          ),
-                        );
-                      }
-                    },
-              icon: isDeleting
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.delete_outline_rounded, size: 18),
-              label: Text(
-                isDeleting ? 'Eliminando...' : 'Eliminar',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
+      storageService: widget.storageService,
+      item: photo,
+      folderHint: folderHint,
     );
-    return deleted ?? false;
   }
 
   Future<void> _confirmAndDeleteFolder(
@@ -1046,33 +941,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         );
                                                         },
                                                       ),
-                                              Positioned(
-                                                top: 8,
-                                                right: 8,
-                                                child: Material(
-                                                  color: Colors.black.withAlpha(155),
-                                                  shape: const CircleBorder(),
-                                                  child: InkWell(
-                                                    customBorder: const CircleBorder(),
-                                                    onTap: () => _confirmAndDeletePhoto(
-                                                      item.photo,
-                                                      folderHint: item.folder,
-                                                    ),
-                                                    child: Tooltip(
-                                                      message: item.photo.isVideo
-                                                          ? 'Eliminar video no permitido'
-                                                          : 'Eliminar foto no permitida',
-                                                      child: const Padding(
-                                                        padding: EdgeInsets.all(6),
-                                                        child: Icon(
-                                                          Icons.delete_outline_rounded,
-                                                          size: 16,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
+                                              MediaTileDeleteButton(
+                                                onTap: () => _confirmAndDeletePhoto(
+                                                  item.photo,
+                                                  folderHint: item.folder,
                                                 ),
+                                                tooltip: item.photo.isVideo
+                                                    ? 'Eliminar video no permitido'
+                                                    : 'Eliminar foto no permitida',
                                               ),
                                               Positioned(
                                                 bottom: 0,

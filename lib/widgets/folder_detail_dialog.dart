@@ -5,6 +5,7 @@ import '../models/memory_folder.dart';
 import '../models/memory_item.dart';
 import '../services/download_helper.dart';
 import '../theme/app_theme.dart';
+import 'media_delete_controls.dart';
 
 class FolderDetailDialog extends StatefulWidget {
   final MemoryFolder folder;
@@ -480,41 +481,14 @@ class _FolderDetailDialogState extends State<FolderDetailDialog> {
                                             },
                                           ),
                                     if (onDeletePhoto != null)
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Material(
-                                          color: Colors.black.withAlpha(155),
-                                          shape: const CircleBorder(),
-                                          child: InkWell(
-                                            customBorder: const CircleBorder(),
-                                            onTap: _deletingPhotoId != null
-                                                ? null
-                                                : () => _handleDeletePhoto(photo),
-                                            child: Tooltip(
-                                              message: photo.isVideo
-                                                  ? 'Eliminar video no permitido'
-                                                  : 'Eliminar foto no permitida',
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(6),
-                                                child: isDeletingThis
-                                                    ? const SizedBox(
-                                                        width: 15,
-                                                        height: 15,
-                                                        child: CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: Colors.white,
-                                                        ),
-                                                      )
-                                                    : const Icon(
-                                                        Icons.delete_outline_rounded,
-                                                        size: 16,
-                                                        color: Colors.white,
-                                                      ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
+                                      MediaTileDeleteButton(
+                                        isDeleting: isDeletingThis,
+                                        onTap: _deletingPhotoId != null
+                                            ? null
+                                            : () => _handleDeletePhoto(photo),
+                                        tooltip: photo.isVideo
+                                            ? 'Eliminar video no permitido'
+                                            : 'Eliminar foto no permitida',
                                       ),
                                     // Gradiente inferior con hover
                                     Positioned(
