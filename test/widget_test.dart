@@ -10,7 +10,10 @@ import 'package:dots_memories_danna/models/memory_item.dart';
 import 'package:dots_memories_danna/services/appwrite_auth_service.dart';
 import 'package:dots_memories_danna/services/storage_service.dart';
 import 'package:dots_memories_danna/widgets/folder_card.dart';
+import 'package:dots_memories_danna/widgets/folder_detail_dialog.dart';
 import 'package:dots_memories_danna/widgets/live_slideshow_dialog.dart';
+import 'package:dots_memories_danna/widgets/photo_lightbox.dart';
+import 'package:dots_memories_danna/widgets/video_player_dialog.dart';
 
 void main() {
   setUpAll(() async {
@@ -246,5 +249,157 @@ void main() {
     final res = await storage.deleteFolder(folder);
     expect(res.success, isTrue);
     expect(storage.foldersNotifier.value, isEmpty);
+  });
+
+  test('StorageService.deletePhoto removes single photo while preserving folder', () async {
+    SharedPreferences.setMockInitialValues({});
+    final keepPhoto = MemoryItem(
+      id: 'photo_keep_1',
+      fileName: 'keep.jpg',
+      bytes: samplePngBytes,
+      timestamp: DateTime(2026, 11, 10),
+    );
+    final badPhoto = MemoryItem(
+      id: 'photo_bad_2',
+      fileName: 'bad.jpg',
+      bytes: samplePngBytes,
+      timestamp: DateTime(2026, 11, 10),
+    );
+    final folder = MemoryFolder(
+      id: 'folder_photo_delete_test',
+      guestName: 'Camila',
+      comment: 'Con mucho cariño',
+      timestamp: DateTime(2026, 11, 10),
+      photos: [keepPhoto, badPhoto],
+    );
+
+    final storage = StorageService();
+    storage.foldersNotifier.value = [folder];
+    final res = await storage.deletePhoto(badPhoto, folderHint: folder);
+
+    expect(res.success, isTrue);
+    expect(storage.foldersNotifier.value, hasLength(1));
+    expect(storage.foldersNotifier.value.first.photos, hasLength(1));
+    expect(storage.foldersNotifier.value.first.photos.first.id, 'photo_keep_1');
+  });
+
+  testWidgets('PhotoLightbox shows delete control only when onDeletePhoto is provided', (WidgetTester tester) async {
+    final photos = [
+      MemoryItem(
+        id: 'photo_lb_1',
+        fileName: 'uno.jpg',
+        bytes: samplePngBytes,
+        timestamp: DateTime(2026, 11, 10),
+      ),
+      MemoryItem(
+        id: 'photo_lb_2',
+        fileName: 'dos.jpg',
+        bytes: samplePngBytes,
+        timestamp: DateTime(2026, 11, 10),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoLightbox(
+          photos: photos,
+          initialIndex: 0,
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    var deletedIds = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoLightbox(
+          photos: photos,
+          initialIndex: 0,
+          onDeletePhoto: (photo) async {
+            deletedIds.add(photo.id);
+            return true;
+          },
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(deletedIds, ['photo_lb_1']);
+    expect(find.text('1 / 1'), findsOneWidget);
+  });
+
+  testWidgets('FolderDetailDialog and VideoPlayerDialog wire individual delete callbacks', (WidgetTester tester) async {
+    final p1 = MemoryItem(
+      id: 'photo_fd_1',
+      fileName: 'fd1.jpg',
+      bytes: samplePngBytes,
+      timestamp: DateTime(2026, 11, 10),
+    );
+    final p2 = MemoryItem(
+      id: 'photo_fd_2',
+      fileName: 'fd2.jpg',
+      bytes: samplePngBytes,
+      timestamp: DateTime(2026, 11, 10),
+    );
+    final folder = MemoryFolder(
+      id: 'folder_fd_test',
+      guestName: 'Lucía',
+      comment: 'Hermosa fiesta',
+      timestamp: DateTime(2026, 11, 10),
+      photos: [p1, p2],
+    );
+
+    final deletedInFolder = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FolderDetailDialog(
+            folder: folder,
+            onPhotoTap: (_) {},
+            onDeletePhoto: (photo) async {
+              deletedInFolder.add(photo.id);
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Fotos del Álbum (2)'), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(2));
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(deletedInFolder, ['photo_fd_1']);
+    expect(find.text('Fotos del Álbum (1)'), findsOneWidget);
+
+    final videoItem = MemoryItem(
+      id: 'video_1',
+      fileName: 'baile.mp4',
+      remoteUrl: 'https://lh3.googleusercontent.com/d/abc123',
+      mimeType: 'video/mp4',
+      timestamp: DateTime(2026, 11, 10),
+    );
+    var videoDeleted = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: VideoPlayerDialog(
+            item: videoItem,
+            guestName: 'Lucía',
+            onDelete: (_) async {
+              videoDeleted = true;
+              return false;
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+    await tester.pumpAndSettle();
+    expect(videoDeleted, isTrue);
   });
 }

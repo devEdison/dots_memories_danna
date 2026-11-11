@@ -10,12 +10,14 @@ class PhotoLightbox extends StatefulWidget {
   final List<MemoryItem> photos;
   final int initialIndex;
   final MemoryFolder? folder;
+  final Future<bool> Function(MemoryItem photo)? onDeletePhoto;
 
   const PhotoLightbox({
     super.key,
     required this.photos,
     required this.initialIndex,
     this.folder,
+    this.onDeletePhoto,
   });
 
   @override
@@ -24,14 +26,20 @@ class PhotoLightbox extends StatefulWidget {
 
 class _PhotoLightboxState extends State<PhotoLightbox> {
   late PageController _pageController;
+  late List<MemoryItem> _photos;
   late int _currentIndex;
+  bool _isDeleting = false;
   final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: widget.initialIndex);
+    _photos = List<MemoryItem>.from(widget.photos);
+    final safeInitial = _photos.isEmpty
+        ? 0
+        : widget.initialIndex.clamp(0, _photos.length - 1);
+    _currentIndex = safeInitial;
+    _pageController = PageController(initialPage: safeInitial);
   }
 
   @override
@@ -42,7 +50,7 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
   }
 
   void _nextPhoto() {
-    if (_currentIndex < widget.photos.length - 1) {
+    if (_currentIndex < _photos.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -59,6 +67,38 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
     }
   }
 
+  Future<void> _deleteCurrentPhoto() async {
+    if (_isDeleting || widget.onDeletePhoto == null || _photos.isEmpty) return;
+    setState(() => _isDeleting = true);
+    try {
+      final targetPhoto = _photos[_currentIndex];
+      final deleted = await widget.onDeletePhoto!(targetPhoto);
+      if (!mounted || !deleted) return;
+
+      final remaining = List<MemoryItem>.from(_photos)
+        ..removeAt(_currentIndex);
+      if (remaining.isEmpty) {
+        Navigator.of(context).pop();
+        return;
+      }
+
+      final nextIndex = _currentIndex.clamp(0, remaining.length - 1);
+      setState(() {
+        _photos = remaining;
+        _currentIndex = nextIndex;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(nextIndex);
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
+  }
+
   void _handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -72,7 +112,8 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
   }
 
   void _downloadCurrentPhoto() {
-    final currentPhoto = widget.photos[_currentIndex];
+    if (_photos.isEmpty) return;
+    final currentPhoto = _photos[_currentIndex];
     if (currentPhoto.bytes != null) {
       DownloadHelper.downloadBytes(currentPhoto.bytes!, currentPhoto.fileName);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,8 +134,11 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
 
   @override
   Widget build(BuildContext context) {
+    if (_photos.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final isMobile = MediaQuery.of(context).size.width < 768;
-    final currentPhoto = widget.photos[_currentIndex];
+    final currentPhoto = _photos[_currentIndex];
 
     return KeyboardListener(
       focusNode: _focusNode,
@@ -107,12 +151,12 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
             // PAGE VIEW DE FOTOS
             PageView.builder(
               controller: _pageController,
-              itemCount: widget.photos.length,
+              itemCount: _photos.length,
               onPageChanged: (index) {
                 setState(() => _currentIndex = index);
               },
               itemBuilder: (context, index) {
-                final photo = widget.photos[index];
+                final photo = _photos[index];
                 return InteractiveViewer(
                   minScale: 0.8,
                   maxScale: 4.0,
@@ -158,7 +202,7 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
             ),
 
             // FLECHAS DE NAVEGACIÓN (Desktop / Tablet)
-            if (!isMobile && widget.photos.length > 1) ...[
+            if (!isMobile && _photos.length > 1) ...[
               if (_currentIndex > 0)
                 Positioned(
                   left: 20,
@@ -175,7 +219,7 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                     ),
                   ),
                 ),
-              if (_currentIndex < widget.photos.length - 1)
+              if (_currentIndex < _photos.length - 1)
                 Positioned(
                   right: 20,
                   top: 0,
@@ -217,7 +261,7 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${_currentIndex + 1} / ${widget.photos.length}',
+                          '${_currentIndex + 1} / ${_photos.length}',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -237,6 +281,29 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                           ),
                         ),
                       ),
+                      if (widget.onDeletePhoto != null) ...[
+                        IconButton(
+                          onPressed: _isDeleting ? null : _deleteCurrentPhoto,
+                          tooltip: 'Eliminar foto no permitida',
+                          icon: _isDeleting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: const Color(0xCC991B1B),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       IconButton(
                         onPressed: _downloadCurrentPhoto,
                         tooltip: 'Descargar foto',

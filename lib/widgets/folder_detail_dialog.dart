@@ -2,20 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/memory_folder.dart';
+import '../models/memory_item.dart';
 import '../services/download_helper.dart';
 import '../theme/app_theme.dart';
 
-class FolderDetailDialog extends StatelessWidget {
+class FolderDetailDialog extends StatefulWidget {
   final MemoryFolder folder;
   final Function(int photoIndex) onPhotoTap;
   final VoidCallback? onDeleteFolder;
+  final Future<bool> Function(MemoryItem photo)? onDeletePhoto;
 
   const FolderDetailDialog({
     super.key,
     required this.folder,
     required this.onPhotoTap,
     this.onDeleteFolder,
+    this.onDeletePhoto,
   });
+
+  @override
+  State<FolderDetailDialog> createState() => _FolderDetailDialogState();
+}
+
+class _FolderDetailDialogState extends State<FolderDetailDialog> {
+  late List<MemoryItem> _photos;
+  String? _deletingPhotoId;
+
+  MemoryFolder get folder => widget.folder;
+  Function(int photoIndex) get onPhotoTap => widget.onPhotoTap;
+  VoidCallback? get onDeleteFolder => widget.onDeleteFolder;
+  Future<bool> Function(MemoryItem photo)? get onDeletePhoto => widget.onDeletePhoto;
+
+  @override
+  void initState() {
+    super.initState();
+    _photos = List<MemoryItem>.from(widget.folder.photos);
+  }
+
+  Future<void> _handleDeletePhoto(MemoryItem photo) async {
+    if (onDeletePhoto == null || _deletingPhotoId != null) return;
+    setState(() => _deletingPhotoId = photo.id);
+    try {
+      final deleted = await onDeletePhoto!(photo);
+      if (deleted && mounted) {
+        setState(() {
+          _photos.removeWhere((p) => p.id == photo.id);
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _deletingPhotoId = null);
+      }
+    }
+  }
 
   void _openGoogleDriveUrl(String url) {
     DownloadHelper.openUrl(url);
@@ -27,7 +66,7 @@ class FolderDetailDialog extends StatelessWidget {
         '═══════════════════════════════════════════════\r\n\r\n'
         'De: ${folder.guestName}\r\n'
         'Fecha: ${DateFormat('dd/MM/yyyy HH:mm').format(folder.timestamp)}\r\n'
-        'Total de fotos: ${folder.photos.length}\r\n\r\n'
+        'Total de fotos: ${_photos.length}\r\n\r\n'
         'MENSAJE:\r\n'
         '${folder.comment.isNotEmpty ? folder.comment : "(Sin mensaje de texto)"}\r\n\r\n'
         '═══════════════════════════════════════════════';
@@ -114,7 +153,7 @@ class FolderDetailDialog extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '• ${folder.photos.length} fotos',
+                              '• ${_photos.length} fotos',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -318,135 +357,212 @@ class FolderDetailDialog extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     // TÍTULO DE LA GALERÍA
-                    Row(
-                      children: [
-                        const Icon(Icons.photo_library_rounded, size: 20, color: AppTheme.sageGreen),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Fotos del Álbum (${folder.photos.length})',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.sageDeep,
+                    SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 4,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.photo_library_rounded, size: 20, color: AppTheme.sageGreen),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Fotos del Álbum (${_photos.length})',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.sageDeep,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Toca cualquier foto para ampliar',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: AppTheme.mutedText,
+                          Text(
+                            'Toca cualquier foto para ampliar',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: AppTheme.mutedText,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 16),
 
                     // GRID DE FOTOS
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: folder.photos.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isMobile ? 2 : 4,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.0,
-                      ),
-                      itemBuilder: (context, index) {
-                        final photo = folder.photos[index];
-                        return MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => onPhotoTap(index),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  photo.isVideo
-                                      ? Container(
-                                          color: const Color(0xFF1E2621),
-                                          child: const Center(
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
-                                                SizedBox(height: 4),
-                                                Text(
-                                                  'VIDEO',
-                                                  style: TextStyle(
-                                                    color: Colors.white70,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
+                    if (_photos.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.scaffoldBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.borderLight),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.photo_library_outlined,
+                              color: AppTheme.mutedText,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No hay fotos en esta carpeta.',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: AppTheme.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _photos.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isMobile ? 2 : 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                        ),
+                        itemBuilder: (context, index) {
+                          final photo = _photos[index];
+                          final isDeletingThis = _deletingPhotoId == photo.id;
+                          return MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () => onPhotoTap(index),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    photo.isVideo
+                                        ? Container(
+                                            color: const Color(0xFF1E2621),
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                                                  SizedBox(height: 4),
+                                                  Text(
+                                                    'VIDEO',
+                                                    style: TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        : Image(
+                                            image: photo.thumbnailProvider,
+                                            fit: BoxFit.cover,
+                                            gaplessPlayback: true,
+                                            filterQuality: FilterQuality.medium,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                color: AppTheme.softPinkBg,
+                                                child: const Center(
+                                                  child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
                                                 ),
-                                              ],
+                                              );
+                                            },
+                                          ),
+                                    if (onDeletePhoto != null)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Material(
+                                          color: Colors.black.withAlpha(155),
+                                          shape: const CircleBorder(),
+                                          child: InkWell(
+                                            customBorder: const CircleBorder(),
+                                            onTap: _deletingPhotoId != null
+                                                ? null
+                                                : () => _handleDeletePhoto(photo),
+                                            child: Tooltip(
+                                              message: photo.isVideo
+                                                  ? 'Eliminar video no permitido'
+                                                  : 'Eliminar foto no permitida',
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(6),
+                                                child: isDeletingThis
+                                                    ? const SizedBox(
+                                                        width: 15,
+                                                        height: 15,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                      )
+                                                    : const Icon(
+                                                        Icons.delete_outline_rounded,
+                                                        size: 16,
+                                                        color: Colors.white,
+                                                      ),
+                                              ),
                                             ),
                                           ),
-                                        )
-                                      : Image(
-                                          image: photo.thumbnailProvider,
-                                          fit: BoxFit.cover,
-                                          gaplessPlayback: true,
-                                          filterQuality: FilterQuality.medium,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              color: AppTheme.softPinkBg,
-                                              child: const Center(
-                                                child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                  // Gradiente inferior con hover
-                                  Positioned(
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: const BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: [Colors.black87, Colors.transparent],
                                         ),
                                       ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Icon(
-                                            Icons.zoom_in_rounded,
-                                            color: Colors.white,
-                                            size: 18,
+                                    // Gradiente inferior con hover
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                            colors: [Colors.black87, Colors.transparent],
                                           ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.download_rounded,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Icon(
+                                              Icons.zoom_in_rounded,
                                               color: Colors.white,
                                               size: 18,
                                             ),
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            onPressed: () {
-                                              if (photo.bytes != null) {
-                                                DownloadHelper.downloadBytes(photo.bytes!, photo.fileName);
-                                              }
-                                            },
-                                          ),
-                                        ],
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.download_rounded,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              onPressed: () {
+                                                if (photo.bytes != null) {
+                                                  DownloadHelper.downloadBytes(photo.bytes!, photo.fileName);
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),

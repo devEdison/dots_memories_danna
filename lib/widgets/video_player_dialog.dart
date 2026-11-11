@@ -7,11 +7,13 @@ import '../theme/app_theme.dart';
 class VideoPlayerDialog extends StatelessWidget {
   final MemoryItem item;
   final String? guestName;
+  final Future<bool> Function(MemoryItem item)? onDelete;
 
   const VideoPlayerDialog({
     super.key,
     required this.item,
     this.guestName,
+    this.onDelete,
   });
 
   String _resolvePlayableVideoUrl(String rawUrl) {
@@ -98,6 +100,18 @@ class VideoPlayerDialog extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (onDelete != null) ...[
+                    IconButton(
+                      tooltip: 'Eliminar video no permitido',
+                      onPressed: () async {
+                        final deleted = await onDelete!(item);
+                        if (deleted && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFB91C1C)),
+                    ),
+                  ],
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close, color: AppTheme.sageDeep),

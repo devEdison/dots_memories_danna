@@ -770,6 +770,69 @@ class StorageService {
     }
   }
 
+  Future<({bool success, String? errorMessage})> _postDriveAction(
+    String action,
+    Map<String, dynamic> payloadMap, {
+    required String actionVerb,
+    required String updateHint,
+  }) async {
+    final scriptUrl = configNotifier.value.googleScriptUrl.trim();
+    try {
+      final response = await _httpClient
+          .post(
+            Uri.parse(scriptUrl),
+            body: jsonEncode({'action': action, ...payloadMap}),
+            headers: {'Content-Type': 'text/plain'},
+          )
+          .timeout(const Duration(seconds: 25));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return (
+          success: false,
+          errorMessage:
+              'Google Drive respondió con error (${response.statusCode}). Inténtalo de nuevo.',
+        );
+      }
+
+      final resJson = jsonDecode(response.body) as Map<String, dynamic>;
+      if (resJson['status'] != 'success' || resJson['action'] != action) {
+        return (
+          success: false,
+          errorMessage: resJson['action'] == action
+              ? (resJson['message'] as String? ?? 'No se pudo $actionVerb en Google Drive.')
+              : updateHint,
+        );
+      }
+      return (success: true, errorMessage: null);
+    } catch (e) {
+      return (
+        success: false,
+        errorMessage: 'No se pudo conectar con Google Drive para $actionVerb: $e',
+      );
+    }
+  }
+
+  static final RegExp _drivePhotoIdRegex = RegExp(
+    r'https://lh3\.googleusercontent\.com/d/([^=/?#]+)',
+  );
+
+  String? _extractDriveFileId(MemoryItem photo) {
+    final remote = photo.remoteUrl?.trim();
+    if (remote != null && remote.isNotEmpty) {
+      final match = _drivePhotoIdRegex.firstMatch(remote);
+      if (match != null && match.group(1) != null) {
+        return match.group(1);
+      }
+    }
+    if (photo.id.isNotEmpty &&
+        !photo.id.startsWith('photo_') &&
+        !photo.id.startsWith('sample_photo_') &&
+        !photo.id.contains('_photo_')) {
+      return photo.id;
+    }
+    return null;
+  }
+
   /// Elimina la carpeta desde el administrador y también la envía a la papelera en Google Drive
   Future<({bool success, String message})> deleteFolder(MemoryFolder folder) async {
     final currentConfig = configNotifier.value;
@@ -784,43 +847,18 @@ class StorageService {
         hasDriveIdentifier;
 
     if (shouldDeleteOnDrive) {
-      try {
-        final scriptUri = Uri.parse(currentConfig.googleScriptUrl.trim());
-        final payload = jsonEncode({
-          'action': 'deleteFolder',
+      final driveResult = await _postDriveAction(
+        'deleteFolder',
+        {
           'folderId': targetGoogleFolderId ?? '',
           'deviceId': folder.deviceId ?? '',
-        });
-
-        final response = await _httpClient
-            .post(
-              scriptUri,
-              body: payload,
-              headers: {'Content-Type': 'text/plain'},
-            )
-            .timeout(const Duration(seconds: 25));
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          final resJson = jsonDecode(response.body) as Map<String, dynamic>;
-          if (resJson['status'] != 'success' || resJson['action'] != 'deleteFolder') {
-            return (
-              success: false,
-              message: resJson['action'] == 'deleteFolder'
-                  ? (resJson['message'] as String? ?? 'No se pudo eliminar en Google Drive.')
-                  : 'Actualiza el script Code.js ("Nueva versión") en script.google.com para poder eliminar carpetas en Google Drive.',
-            );
-          }
-        } else {
-          return (
-            success: false,
-            message: 'Google Drive respondió con error (${response.statusCode}). Inténtalo de nuevo.',
-          );
-        }
-      } catch (e) {
-        return (
-          success: false,
-          message: 'No se pudo conectar con Google Drive para eliminar la carpeta: $e',
-        );
+        },
+        actionVerb: 'eliminar la carpeta',
+        updateHint:
+            'Actualiza el script Code.js ("Nueva versión") en script.google.com para poder eliminar carpetas en Google Drive.',
+      );
+      if (!driveResult.success) {
+        return (success: false, message: driveResult.errorMessage!);
       }
     }
 
@@ -847,6 +885,104 @@ class StorageService {
       message: shouldDeleteOnDrive
           ? 'Carpeta de ${folder.guestName} eliminada del álbum y movida a la papelera de Google Drive.'
           : 'Carpeta de ${folder.guestName} eliminada del álbum.',
+    );
+  }
+
+  /// Elimina una foto o video individual desde el administrador y lo mueve a la papelera en Google Drive
+  Future<({bool success, String message})> deletePhoto(
+    MemoryItem photo, {
+    MemoryFolder? folderHint,
+  }) async {
+    final currentList = List<MemoryFolder>.from(foldersNotifier.value);
+    final extractedFileId = _extractDriveFileId(photo);
+    bool folderContainsPhoto(MemoryFolder f) => f.photos.any(
+          (p) =>
+              p.id == photo.id ||
+              (extractedFileId != null && p.id == extractedFileId),
+        );
+
+    MemoryFolder? owningFolder;
+    if (folderHint != null) {
+      final matchedIdx = currentList.indexWhere(
+        (f) =>
+            (f.id == folderHint.id ||
+                (folderHint.googleFolderId != null &&
+                    f.googleFolderId == folderHint.googleFolderId)) &&
+            folderContainsPhoto(f),
+      );
+      if (matchedIdx != -1) {
+        owningFolder = currentList[matchedIdx];
+      } else if (folderContainsPhoto(folderHint)) {
+        owningFolder = folderHint;
+      }
+    }
+    if (owningFolder == null) {
+      for (final f in currentList) {
+        if (folderContainsPhoto(f)) {
+          owningFolder = f;
+          break;
+        }
+      }
+    }
+
+    final targetGoogleFileId = extractedFileId;
+    final targetGoogleFolderId = owningFolder?.googleFolderId ??
+        (owningFolder != null && !owningFolder.id.startsWith('folder_')
+            ? owningFolder.id
+            : null);
+
+    final hasDriveIdentifier =
+        (targetGoogleFileId != null && targetGoogleFileId.isNotEmpty) ||
+        ((owningFolder?.isSyncedToGoogle ?? false) &&
+            photo.fileName.isNotEmpty &&
+            ((targetGoogleFolderId != null && targetGoogleFolderId.isNotEmpty) ||
+                (owningFolder?.deviceId?.isNotEmpty ?? false)));
+
+    final currentConfig = configNotifier.value;
+    final shouldDeleteOnDrive = currentConfig.useGoogleBackend &&
+        currentConfig.googleScriptUrl.trim().isNotEmpty &&
+        hasDriveIdentifier;
+
+    if (shouldDeleteOnDrive) {
+      final driveResult = await _postDriveAction(
+        'deleteFile',
+        {
+          'fileId': targetGoogleFileId ?? '',
+          'folderId': targetGoogleFolderId ?? '',
+          'deviceId': owningFolder?.deviceId ?? '',
+          'fileName': photo.fileName,
+        },
+        actionVerb: 'eliminar el archivo',
+        updateHint:
+            'Actualiza el script Code.js ("Nueva versión") en script.google.com para poder eliminar fotos individuales en Google Drive.',
+      );
+      if (!driveResult.success) {
+        return (success: false, message: driveResult.errorMessage!);
+      }
+    }
+
+    final updatedList = currentList.map((f) {
+      final containsPhoto = f.photos.any(
+        (p) => p.id == photo.id || (targetGoogleFileId != null && p.id == targetGoogleFileId),
+      );
+      if (!containsPhoto) return f;
+      final remaining = f.photos
+          .where(
+            (p) => p.id != photo.id && (targetGoogleFileId == null || p.id != targetGoogleFileId),
+          )
+          .toList();
+      return f.copyWith(photos: remaining);
+    }).toList();
+
+    foldersNotifier.value = updatedList;
+    await _saveFoldersToDisk();
+
+    final itemLabel = photo.isVideo ? 'Video' : 'Foto';
+    return (
+      success: true,
+      message: shouldDeleteOnDrive
+          ? '$itemLabel eliminado del álbum y movido a la papelera de Google Drive.'
+          : '$itemLabel eliminado del álbum.',
     );
   }
 

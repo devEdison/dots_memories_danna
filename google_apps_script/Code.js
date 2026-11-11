@@ -55,6 +55,9 @@ function doPost(e) {
     if (data.action === "deleteFolder") {
       return deleteFolderInDrive_(data);
     }
+    if (data.action === "deleteFile") {
+      return deleteFileInDrive_(data);
+    }
 
     const guestName = (data.guestName || "Invitado Especial").trim();
     const comment = (data.comment || "").trim();
@@ -340,6 +343,31 @@ function batchCreateGooglePhotosMediaItems_(token, items, guestName, comment) {
 }
 
 /**
+ * Busca una subcarpeta dentro de la carpeta principal por folderId o deviceId cacheado
+ */
+function findSubfolderInMain_(mainFolder, folderId, deviceId) {
+  const subfolders = mainFolder.getFolders();
+  while (subfolders.hasNext()) {
+    const sf = subfolders.next();
+    if (folderId && sf.getId() === folderId) {
+      return sf;
+    }
+    if (deviceId) {
+      try {
+        const desc = sf.getDescription();
+        if (desc && desc.startsWith("{")) {
+          const parsed = JSON.parse(desc);
+          if (parsed.deviceId && parsed.deviceId === deviceId) {
+            return sf;
+          }
+        }
+      } catch (parseErr) { }
+    }
+  }
+  return null;
+}
+
+/**
  * Elimina (envía a la papelera de Google Drive) una subcarpeta dentro de la carpeta del evento
  */
 function deleteFolderInDrive_(data) {
@@ -357,28 +385,7 @@ function deleteFolderInDrive_(data) {
   const lock = acquireScriptLock_(10000);
   try {
     const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
-    const subfolders = mainFolder.getFolders();
-    var targetFolder = null;
-
-    // Buscar estrictamente dentro de la carpeta principal del evento para mayor seguridad
-    while (subfolders.hasNext()) {
-      const sf = subfolders.next();
-      if (folderId && sf.getId() === folderId) {
-        targetFolder = sf;
-        break;
-      }
-      if (!targetFolder && deviceId) {
-        try {
-          const desc = sf.getDescription();
-          if (desc && desc.startsWith("{")) {
-            const parsed = JSON.parse(desc);
-            if (parsed.deviceId && parsed.deviceId === deviceId) {
-              targetFolder = sf;
-            }
-          }
-        } catch (parseErr) { }
-      }
-    }
+    const targetFolder = findSubfolderInMain_(mainFolder, folderId, deviceId);
 
     if (!targetFolder) {
       Logger.log("ℹ️ [deleteFolder] Carpeta no encontrada en Drive (posiblemente ya eliminada): " + folderId);
@@ -410,6 +417,117 @@ function deleteFolderInDrive_(data) {
     return responseJSON({
       status: "error",
       action: "deleteFolder",
+      message: err.toString()
+    });
+  } finally {
+    if (lock) {
+      try { lock.releaseLock(); } catch (relErr) { }
+    }
+  }
+}
+
+/**
+ * Elimina (envía a la papelera de Google Drive) un archivo individual y actualiza la caché de su carpeta
+ */
+function deleteFileInDrive_(data) {
+  const fileId = (data.fileId || "").trim();
+  const folderId = (data.folderId || "").trim();
+  const deviceId = (data.deviceId || "").trim();
+  const fileName = (data.fileName || "").trim();
+
+  if (!fileId && !(fileName && (folderId || deviceId))) {
+    return responseJSON({
+      status: "error",
+      action: "deleteFile",
+      message: "Falta el identificador del archivo a eliminar."
+    });
+  }
+
+  const lock = acquireScriptLock_(10000);
+  try {
+    const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
+    const mainFolderId = mainFolder.getId();
+    var targetFolder = findSubfolderInMain_(mainFolder, folderId, deviceId);
+    var targetFile = null;
+
+    if (fileId) {
+      try {
+        const candidate = DriveApp.getFileById(fileId);
+        const parents = candidate.getParents();
+        while (parents.hasNext()) {
+          const parent = parents.next();
+          if (targetFolder && parent.getId() === targetFolder.getId()) {
+            targetFile = candidate;
+            break;
+          }
+          const grandParents = parent.getParents();
+          while (grandParents.hasNext()) {
+            if (grandParents.next().getId() === mainFolderId) {
+              targetFile = candidate;
+              if (!targetFolder) {
+                targetFolder = parent;
+              }
+              break;
+            }
+          }
+          if (targetFile) break;
+        }
+      } catch (lookupErr) { }
+    }
+
+    if (!targetFile && targetFolder && fileName) {
+      const filesByName = targetFolder.getFilesByName(fileName);
+      if (filesByName.hasNext()) {
+        targetFile = filesByName.next();
+      }
+    }
+
+    const resolvedFileId = targetFile ? targetFile.getId() : fileId;
+    const resolvedFileName = targetFile ? targetFile.getName() : fileName;
+
+    if (targetFile && !targetFile.isTrashed()) {
+      targetFile.setTrashed(true);
+      Logger.log("🗑️ [deleteFile] Archivo enviado a papelera de Drive: " + resolvedFileName + " (" + resolvedFileId + ")");
+    }
+
+    // Actualizar metadatos cacheados de la carpeta padre para evitar que reaparezca en listados
+    if (targetFolder) {
+      try {
+        const desc = targetFolder.getDescription();
+        if (desc && desc.startsWith("{")) {
+          const parsed = JSON.parse(desc);
+          if (parsed.photos && Array.isArray(parsed.photos)) {
+            parsed.photos = parsed.photos.filter(function (p) {
+              if (!p) return false;
+              if (resolvedFileId && p.id && p.id === resolvedFileId) return false;
+              const pName = p.name || p.n || "";
+              if (!resolvedFileId && fileName && pName === fileName) return false;
+              return true;
+            });
+            targetFolder.setDescription(JSON.stringify(parsed));
+          }
+        }
+      } catch (metaErr) {
+        Logger.log("⚠️ [deleteFile] Aviso actualizando metadatos: " + metaErr.toString());
+      }
+    }
+
+    return responseJSON({
+      status: "success",
+      action: "deleteFile",
+      deletedFileId: resolvedFileId,
+      deletedFileName: resolvedFileName,
+      trashed: Boolean(targetFile),
+      alreadyMissing: !targetFile,
+      message: targetFile
+        ? "Foto o video eliminado en Google Drive."
+        : "El archivo ya no estaba en Google Drive."
+    });
+  } catch (err) {
+    Logger.log("❌ [deleteFile] Error eliminando archivo: " + err.toString());
+    return responseJSON({
+      status: "error",
+      action: "deleteFile",
       message: err.toString()
     });
   } finally {
