@@ -7,6 +7,7 @@ import '../models/memory_item.dart';
 import '../services/appwrite_auth_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import 'festive_effects.dart';
 import 'photo_lightbox.dart';
 import 'qr_code_dialog.dart';
 import 'upload_modal.dart';
@@ -277,21 +278,33 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
           backgroundColor: AppTheme.scaffoldBg,
           body: CustomScrollView(
             slivers: [
-              // HERO HEADER AISLADO EN VERDE SALVIA Y ROSADO
+              // HERO HEADER AISLADO EN VERDE SALVIA, ROSADO Y DORADO
               SliverToBoxAdapter(
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     gradient: AppTheme.heroGradient,
                     border: Border(
-                      bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
+                      bottom: BorderSide(color: AppTheme.goldBorder, width: 1.5),
                     ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 18 : 36,
-                    vertical: isMobile ? 24 : 32,
-                  ),
-                  child: Center(
+                  child: Stack(
+                    children: [
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: QuinceTopRibbon(height: 3.5),
+                      ),
+                      const Positioned.fill(
+                        child: QuinceAmbientBackdrop(particleCount: 22, opacityMultiplier: 0.85),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 18 : 36,
+                          vertical: isMobile ? 24 : 32,
+                        ),
+                        child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 900),
                       child: Column(
@@ -365,27 +378,56 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Corona animada de 15 Años
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppTheme.pinkBorder),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.blushPink.withAlpha(40),
-                                  blurRadius: 16,
+                          // Corona animada de 15 Años con brillos dorados y rosados
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('✨', style: TextStyle(fontSize: 18))
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .fade(begin: 0.3, end: 1.0, duration: 1500.ms)
+                                  .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFFFFF),
+                                      Color(0xFFFDF2F4),
+                                      Color(0xFFFCF7E3),
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.warmGold, width: 2.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.warmGold.withAlpha(75),
+                                      blurRadius: 18,
+                                      spreadRadius: 1,
+                                    ),
+                                    BoxShadow(
+                                      color: AppTheme.blushPink.withAlpha(50),
+                                      blurRadius: 14,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Text('👑', style: TextStyle(fontSize: 34)),
-                          )
-                              .animate(onPlay: (c) => c.repeat(reverse: true))
-                              .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
+                                child: const Text('👑', style: TextStyle(fontSize: 36)),
+                              )
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.10, 1.10), duration: 2000.ms)
+                                  .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
+                              const SizedBox(width: 12),
+                              const Text('✨', style: TextStyle(fontSize: 18))
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .fade(begin: 1.0, end: 0.3, duration: 1500.ms)
+                                  .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.8, 0.8)),
+                            ],
+                          ),
                           const SizedBox(height: 12),
 
-                          // Título con efecto de Brillo
+                          // Título con efecto de Brillo Dorado y Rosado
                           RichText(
                             textAlign: TextAlign.center,
                             text: TextSpan(
@@ -404,14 +446,32 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                     fontSize: isMobile ? 24 : 32,
                                     fontWeight: FontWeight.w800,
                                     color: AppTheme.deepRose,
+                                    shadows: [
+                                      Shadow(
+                                        color: AppTheme.warmGold.withAlpha(80),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           )
                               .animate(onPlay: (c) => c.repeat(reverse: true))
-                              .shimmer(duration: 2600.ms, color: const Color(0xFFFFDCE5)),
+                              .shimmer(duration: 2600.ms, color: AppTheme.goldLight),
                           const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(height: 1.2, width: 32, color: AppTheme.goldBorder),
+                              const SizedBox(width: 8),
+                              const Text('🌿✨🌸✨🌿', style: TextStyle(fontSize: 12)),
+                              const SizedBox(width: 8),
+                              Container(height: 1.2, width: 32, color: AppTheme.goldBorder),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
                           Text(
                             guestName.isNotEmpty
                                 ? '¡Bienvenido(a), $guestName! Tu Espacio Privado de Recuerdos ✨'
@@ -434,18 +494,22 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Tarjeta de Acción Rápida: Totalmente responsive en celulares y tablets
+                          // Tarjeta de Acción Rápida: Verde Salvia, Rosado & Borde Dorado
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: AppTheme.sageBorder, width: 1.5),
+                              border: Border.all(color: AppTheme.goldBorder, width: 1.5),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.sageGreen.withAlpha(30),
-                                  blurRadius: 15,
+                                  color: AppTheme.sageGreen.withAlpha(32),
+                                  blurRadius: 16,
                                   offset: const Offset(0, 4),
+                                ),
+                                BoxShadow(
+                                  color: AppTheme.warmGold.withAlpha(28),
+                                  blurRadius: 12,
                                 ),
                               ],
                             ),
@@ -456,9 +520,12 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.all(10),
-                                            decoration: const BoxDecoration(
-                                              color: AppTheme.softPinkBg,
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                              ),
                                               shape: BoxShape.circle,
+                                              border: Border.all(color: AppTheme.goldBorder),
                                             ),
                                             child: const Text('📸', style: TextStyle(fontSize: 20)),
                                           ),
@@ -489,18 +556,15 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                       const SizedBox(height: 12),
                                       SizedBox(
                                         width: double.infinity,
-                                        height: 46,
-                                        child: ElevatedButton.icon(
+                                        child: QuincePrimaryButton(
                                           onPressed: _openUploadModal,
-                                          icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
-                                          label: Text(
-                                            myFolders.isEmpty ? 'Subir Mis Fotos y Videos Ahora ✨' : 'Subir Más Fotos a Mi Carpeta 📸',
-                                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppTheme.sageDark,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                          ),
+                                          icon: Icons.add_photo_alternate_rounded,
+                                          label: myFolders.isEmpty
+                                              ? 'Subir Mis Fotos y Videos Ahora ✨'
+                                              : 'Subir Más Fotos a Mi Carpeta 📸',
+                                          minHeight: 46,
+                                          borderRadius: 16,
+                                          fontSize: 13,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -527,9 +591,12 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(12),
-                                        decoration: const BoxDecoration(
-                                          color: AppTheme.softPinkBg,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                          ),
                                           shape: BoxShape.circle,
+                                          border: Border.all(color: AppTheme.goldBorder),
                                         ),
                                         child: const Text('📸', style: TextStyle(fontSize: 22)),
                                       ),
@@ -570,18 +637,15 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 10),
-                                      ElevatedButton.icon(
+                                      QuincePrimaryButton(
                                         onPressed: _openUploadModal,
-                                        icon: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white, size: 18),
-                                        label: Text(
-                                          myFolders.isEmpty ? 'Subir Mis Fotos y Videos Ahora ✨' : 'Subir Más Fotos a Mi Carpeta 📸',
-                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppTheme.sageDark,
-                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        ),
+                                        icon: Icons.add_photo_alternate_rounded,
+                                        label: myFolders.isEmpty
+                                            ? 'Subir Mis Fotos y Videos Ahora ✨'
+                                            : 'Subir Más Fotos a Mi Carpeta 📸',
+                                        borderRadius: 16,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                        fontSize: 14,
                                       ),
                                     ],
                                   ),
@@ -589,6 +653,9 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                         ],
                       ),
                     ),
+                  ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -602,13 +669,37 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: const BoxDecoration(
-                              color: AppTheme.softPinkBg,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Text('🌸', style: TextStyle(fontSize: 48)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('✨', style: TextStyle(fontSize: 20))
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .fade(begin: 0.3, end: 1.0, duration: 1500.ms),
+                              const SizedBox(width: 14),
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.warmGold, width: 1.8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.warmGold.withAlpha(65),
+                                      blurRadius: 18,
+                                    ),
+                                  ],
+                                ),
+                                child: const Text('🌸', style: TextStyle(fontSize: 48)),
+                              )
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
+                              const SizedBox(width: 14),
+                              const Text('✨', style: TextStyle(fontSize: 20))
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .fade(begin: 1.0, end: 0.3, duration: 1500.ms),
+                            ],
                           ),
                           const SizedBox(height: 20),
                           Text(
@@ -629,22 +720,13 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          ElevatedButton.icon(
+                          QuincePrimaryButton(
                             onPressed: _openUploadModal,
-                            icon: const Icon(Icons.cloud_upload_rounded, color: Colors.white),
-                            label: Text(
-                              'Subir Mis Fotos y Videos Ahora ✨',
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.sageDark,
-                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                            ),
+                            icon: Icons.cloud_upload_rounded,
+                            label: 'Subir Mis Fotos y Videos Ahora ✨',
+                            borderRadius: 18,
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                            fontSize: 15,
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
@@ -698,11 +780,11 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: AppTheme.sageBorder, width: 1.2),
+                                border: Border.all(color: AppTheme.goldBorder, width: 1.4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.sageGreen.withAlpha(20),
-                                    blurRadius: 15,
+                                    color: AppTheme.sageGreen.withAlpha(24),
+                                    blurRadius: 16,
                                     offset: const Offset(0, 4),
                                   ),
                                 ],
@@ -711,10 +793,17 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Encabezado de la carpeta
+                                  // Encabezado de la carpeta Verde Salvia + Rosado + Dorado
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                    color: AppTheme.sageLight.withAlpha(120),
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [AppTheme.sageLight, Color(0xFFFAF3F5)],
+                                      ),
+                                      border: Border(
+                                        bottom: BorderSide(color: AppTheme.goldBorder, width: 1),
+                                      ),
+                                    ),
                                     child: Row(
                                       children: [
                                         Container(
@@ -722,7 +811,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                           decoration: BoxDecoration(
                                             color: Colors.white,
                                             shape: BoxShape.circle,
-                                            border: Border.all(color: AppTheme.sageBorder),
+                                            border: Border.all(color: AppTheme.goldBorder, width: 1.3),
                                           ),
                                           child: const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 20),
                                         ),
@@ -867,7 +956,10 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                   ),
                                 ],
                               ),
-                            ),
+                            )
+                                .animate(delay: (index * 80).ms)
+                                .fadeIn(duration: 420.ms)
+                                .slideY(begin: 0.04, end: 0, curve: Curves.easeOut),
                           ),
                         );
                       },
@@ -899,12 +991,18 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
             onPressed: _openUploadModal,
             backgroundColor: AppTheme.sageDark,
             foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_photo_alternate_rounded),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+              side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
+            ),
+            icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
             label: Text(
-              'Subir Más Fotos y Videos',
+              'Subir Más Fotos y Videos ✨',
               style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
             ),
-          ),
+          )
+              .animate(onPlay: (c) => c.repeat())
+              .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
         );
       },
     );

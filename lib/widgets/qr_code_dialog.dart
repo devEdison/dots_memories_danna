@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/download_helper.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import 'festive_effects.dart';
 
 class QrCodeDialog extends StatelessWidget {
   final StorageService storageService;
@@ -55,25 +57,32 @@ class QrCodeDialog extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppTheme.goldBorder, width: 1.6),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.sageGreen.withAlpha(40),
+              color: AppTheme.sageGreen.withAlpha(45),
               blurRadius: 30,
               offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: AppTheme.warmGold.withAlpha(35),
+              blurRadius: 20,
             ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Cabecera Verde Salvia & Rosado
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+            const QuinceTopRibbon(height: 4),
+            // Cabecera Verde Salvia, Rosado & Dorado
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: const BoxDecoration(
                 gradient: AppTheme.heroGradient,
                 border: Border(
-                  bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
+                  bottom: BorderSide(color: AppTheme.goldBorder, width: 1.2),
                 ),
               ),
               child: Row(
@@ -84,11 +93,13 @@ class QrCodeDialog extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.softPinkBg,
+                          gradient: const LinearGradient(
+                            colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                          ),
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.pinkBorder),
+                          border: Border.all(color: AppTheme.goldBorder),
                         ),
-                        child: const Icon(Icons.qr_code_2_rounded, color: AppTheme.dustyPink, size: 20),
+                        child: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 20),
                       ),
                       const SizedBox(width: 10),
                       Column(
@@ -122,32 +133,93 @@ class QrCodeDialog extends StatelessWidget {
               ),
             ),
 
-            // Tarjeta de mesa elegante en Verde Salvia y Rosado
+            // Tarjeta de mesa elegante en Verde Salvia, Rosado & Dorado
             Padding(
               padding: const EdgeInsets.all(22),
               child: Column(
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: AppTheme.sageLight,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFEAF3EB),
+                          Color(0xFFF6FAF7),
+                          Color(0xFFFDF2F5),
+                          Color(0xFFFCF6E6),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppTheme.sageBorder, width: 1.5),
+                      border: Border.all(color: AppTheme.warmGold, width: 1.8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.sageGreen.withAlpha(30),
+                          blurRadius: 14,
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
-                        const Text('👑', style: TextStyle(fontSize: 34)),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Mis 15 Años • Danna Alejandra',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.sageDeep,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('✨', style: TextStyle(fontSize: 16))
+                                .animate(onPlay: (c) => c.repeat(reverse: true))
+                                .fade(begin: 0.4, end: 1.0, duration: 1400.ms),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.goldGradient,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.warmGold.withAlpha(80),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: const Text('👑', style: TextStyle(fontSize: 28)),
+                            )
+                                .animate(onPlay: (c) => c.repeat(reverse: true))
+                                .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2000.ms),
+                            const SizedBox(width: 10),
+                            const Text('✨', style: TextStyle(fontSize: 16))
+                                .animate(onPlay: (c) => c.repeat(reverse: true))
+                                .fade(begin: 1.0, end: 0.4, duration: 1400.ms),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Mis 15 Años • ',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.sageDeep,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Danna Alejandra',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.deepRose,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
+                        const Text('🌿 ✨ 🌸 ✨ 🌿', style: TextStyle(fontSize: 12)),
+                        const SizedBox(height: 4),
                         Text(
                           '¡Sube tus fotos a nuestro álbum de recuerdos!',
                           textAlign: TextAlign.center,
@@ -158,17 +230,21 @@ class QrCodeDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
-                        // Código QR renderizado
+                        // Código QR renderizado con marco Dorado
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.pinkBorder, width: 1.5),
+                            border: Border.all(color: AppTheme.warmGold, width: 2.0),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.blushPink.withAlpha(40),
+                                color: AppTheme.warmGold.withAlpha(55),
                                 blurRadius: 16,
+                              ),
+                              BoxShadow(
+                                color: AppTheme.blushPink.withAlpha(45),
+                                blurRadius: 14,
                               ),
                             ],
                           ),
@@ -193,12 +269,12 @@ class QrCodeDialog extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.sageBorder),
+                            border: Border.all(color: AppTheme.goldBorder, width: 1.3),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.key_rounded, size: 13, color: AppTheme.dustyPink),
+                              const Icon(Icons.key_rounded, size: 13, color: AppTheme.goldDeep),
                               const SizedBox(width: 5),
                               Text(
                                 'Llave de acceso: $accessKey',
@@ -255,24 +331,13 @@ class QrCodeDialog extends StatelessWidget {
                   // Botón directo para imprimir tarjeta de mesa física
                   SizedBox(
                     width: double.infinity,
-                    height: 44,
-                    child: ElevatedButton.icon(
+                    child: QuincePrimaryButton(
                       onPressed: _printQr,
-                      icon: const Icon(Icons.print_rounded, size: 18, color: Colors.white),
-                      label: Text(
-                        'Imprimir Tarjetas para Mesas (Físico) 🖨️',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.sageDark,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 1,
-                      ),
+                      icon: Icons.print_rounded,
+                      label: 'Imprimir Tarjetas para Mesas (Físico) 🖨️',
+                      minHeight: 46,
+                      borderRadius: 14,
+                      fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -312,6 +377,7 @@ class QrCodeDialog extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

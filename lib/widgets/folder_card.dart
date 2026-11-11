@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/memory_folder.dart';
 import '../theme/app_theme.dart';
+import 'festive_effects.dart';
 
 class FolderCard extends StatelessWidget {
   final MemoryFolder folder;
@@ -54,38 +55,47 @@ class FolderCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: 4,
-      shadowColor: AppTheme.sageGreen.withAlpha(25),
+      elevation: 5,
+      shadowColor: AppTheme.warmGold.withAlpha(45),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: AppTheme.sageBorder, width: 1.2),
+        side: const BorderSide(color: AppTheme.goldBorder, width: 1.4),
       ),
       child: InkWell(
         onTap: onOpen,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera de la carpeta estilo pestaña Verde Salvia
+            // Cabecera de la carpeta estilo Verde Salvia, Rosado & Borde Dorado
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
-                color: AppTheme.sageLight,
+                gradient: LinearGradient(
+                  colors: [AppTheme.sageLight, Color(0xFFFAF1F4)],
+                ),
                 border: Border(
-                  bottom: BorderSide(color: AppTheme.sageBorder, width: 1),
+                  bottom: BorderSide(color: AppTheme.goldBorder, width: 1.1),
                 ),
               ),
               child: Row(
                 children: [
-                  // Avatar de iniciales
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: avatarColor,
-                    child: Text(
-                      _getInitials(folder.guestName),
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  // Avatar de iniciales con aro dorado
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.warmGold, width: 1.5),
+                    ),
+                    child: CircleAvatar(
+                      radius: 19,
+                      backgroundColor: avatarColor,
+                      child: Text(
+                        _getInitials(folder.guestName),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -231,51 +241,38 @@ class FolderCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Botón Like
-                      InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: onLike,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.favorite_rounded,
-                                size: 18,
-                                color: AppTheme.dustyPink,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${folder.likes}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.charcoal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      // Botón Like animado
+                      AnimatedLikeButton(
+                        likes: folder.likes,
+                        onLike: onLike,
                       ),
 
                       // Botón Abrir Carpeta
-                      Row(
-                        children: [
-                          Text(
-                            'Ver fotos',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.sageDark,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.sageLight,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.goldBorder.withAlpha(180)),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Ver fotos ✨',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.sageDark,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 2),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 14,
-                            color: AppTheme.sageDark,
-                          ),
-                        ],
+                            const SizedBox(width: 2),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: AppTheme.goldDeep,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

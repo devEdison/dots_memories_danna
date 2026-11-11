@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'models/memory_folder.dart';
@@ -9,6 +10,7 @@ import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/access_key_dialog.dart';
 import 'widgets/event_header.dart';
+import 'widgets/festive_effects.dart';
 import 'widgets/folder_card.dart';
 import 'widgets/folder_detail_dialog.dart';
 import 'widgets/gatekeeper_screen.dart';
@@ -254,7 +256,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       decoration: const BoxDecoration(
-                        color: AppTheme.sageDeep,
+                        gradient: LinearGradient(
+                          colors: [AppTheme.sageDeep, AppTheme.sageDark, AppTheme.sageDeep],
+                        ),
+                        border: Border(
+                          bottom: BorderSide(color: AppTheme.goldBorder, width: 1.2),
+                        ),
                       ),
                       child: Center(
                         child: ConstrainedBox(
@@ -263,8 +270,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                                child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.goldBorder.withAlpha(150)),
+                                ),
+                                child: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.goldLight, size: 16),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -276,11 +287,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               OutlinedButton.icon(
                                 onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
-                                icon: const Icon(Icons.folder_shared_rounded, size: 14),
+                                icon: const Icon(Icons.folder_shared_rounded, size: 14, color: AppTheme.goldLight),
                                 label: Text(isMobile ? 'Drive' : 'Google Drive 📁'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white54),
+                                  side: const BorderSide(color: AppTheme.goldBorder),
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 ),
                               ),
@@ -322,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // CABECERA HERO EN VERDE SALVIA Y ROSADO
+                  // CABECERA HERO EN VERDE SALVIA, ROSADO Y DORADO
                   SliverToBoxAdapter(
                     child: ValueListenableBuilder<bool>(
                       valueListenable: widget.storageService.isSyncingNotifier,
@@ -360,14 +371,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          gradient: const LinearGradient(
+                            colors: [Colors.white, Color(0xFFFDF6F8)],
+                          ),
                           borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: AppTheme.sageBorder, width: 1.5),
+                          border: Border.all(color: AppTheme.goldBorder, width: 1.5),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.sageGreen.withAlpha(20),
+                              color: AppTheme.sageGreen.withAlpha(24),
                               blurRadius: 15,
                               offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: AppTheme.warmGold.withAlpha(25),
+                              blurRadius: 12,
                             ),
                           ],
                         ),
@@ -379,9 +396,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(8),
-                                        decoration: const BoxDecoration(
-                                          color: AppTheme.sageLight,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [AppTheme.sageLight, AppTheme.goldLight],
+                                          ),
                                           shape: BoxShape.circle,
+                                          border: Border.all(color: AppTheme.goldBorder),
                                         ),
                                         child: const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 20),
                                       ),
@@ -410,19 +430,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(height: 12),
                                   SizedBox(
                                     width: double.infinity,
-                                    height: 42,
-                                    child: ElevatedButton.icon(
+                                    child: QuincePrimaryButton(
                                       onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
-                                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                                      label: Text(
-                                        'Abrir Carpeta en Google Drive ↗',
-                                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.sageDark,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                      ),
+                                      icon: Icons.open_in_new_rounded,
+                                      label: 'Abrir Carpeta en Google Drive ↗',
+                                      minHeight: 42,
+                                      borderRadius: 14,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ],
@@ -431,9 +445,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(12),
-                                    decoration: const BoxDecoration(
-                                      color: AppTheme.sageLight,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [AppTheme.sageLight, AppTheme.goldLight],
+                                      ),
                                       shape: BoxShape.circle,
+                                      border: Border.all(color: AppTheme.goldBorder),
                                     ),
                                     child: const Icon(Icons.folder_shared_rounded, color: AppTheme.sageDark, size: 24),
                                   ),
@@ -456,15 +473,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: AppTheme.sageLight,
+                                                gradient: const LinearGradient(
+                                                  colors: [AppTheme.sageLight, AppTheme.goldLight],
+                                                ),
                                                 borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: AppTheme.goldBorder),
                                               ),
                                               child: Text(
-                                                'Nube Conectada ☁️',
+                                                'Nube Conectada ✨',
                                                 style: GoogleFonts.poppins(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
-                                                  color: AppTheme.sageDark,
+                                                  color: AppTheme.sageDeep,
                                                 ),
                                               ),
                                             ),
@@ -488,20 +508,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 14),
-                                  ElevatedButton.icon(
+                                  QuincePrimaryButton(
                                     onPressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
-                                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                                    label: Text(
-                                      'Abrir Carpeta en Google Drive ↗',
-                                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.sageDark,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                      elevation: 2,
-                                    ),
+                                    icon: Icons.open_in_new_rounded,
+                                    label: 'Abrir Carpeta en Google Drive ↗',
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                                    borderRadius: 16,
+                                    fontSize: 13,
                                   ),
                                 ],
                               ),
@@ -642,7 +655,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         folder: folder,
                                         onOpen: () => _openFolderDetail(folder),
                                         onLike: () => widget.storageService.toggleLike(folder.id),
-                                      );
+                                      )
+                                          .animate(delay: ((index % 6) * 55).ms)
+                                          .fadeIn(duration: 380.ms)
+                                          .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0));
                                     },
                                   );
                                 },
@@ -716,8 +732,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                         cursor: SystemMouseCursors.click,
                                         child: GestureDetector(
                                           onTap: () => _openLightbox(allPhotos, index, item.folder),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(18),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(18),
+                                              border: Border.all(color: AppTheme.goldBorder, width: 1.3),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppTheme.sageGreen.withAlpha(24),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ],
+                                            ),
+                                            clipBehavior: Clip.antiAlias,
                                             child: Stack(
                                               fit: StackFit.expand,
                                               children: [
@@ -797,7 +824,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 ),
                                               ],
                                             ),
-                                          ),
+                                          )
+                                              .animate(delay: ((index % 10) * 35).ms)
+                                              .fadeIn(duration: 340.ms)
+                                              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.0, 1.0)),
                                         ),
                                       );
                                     },
@@ -873,13 +903,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _onUploadAttempt,
                 backgroundColor: AppTheme.sageDark,
                 foregroundColor: Colors.white,
-                elevation: 4,
-                icon: const Icon(Icons.add_photo_alternate_rounded),
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
+                ),
+                icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
                 label: Text(
-                  'Subir Fotos y Videos',
+                  'Subir Fotos y Videos ✨',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                 ),
-              ),
+              )
+                  .animate(onPlay: (c) => c.repeat())
+                  .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
             );
           },
         );

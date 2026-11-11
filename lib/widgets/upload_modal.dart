@@ -1,9 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/download_helper.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import 'festive_effects.dart';
 
 class UploadModal extends StatefulWidget {
   final StorageService storageService;
@@ -248,11 +250,16 @@ class _UploadModalState extends State<UploadModal> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: AppTheme.goldBorder, width: 1.6),
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.sageGreen.withAlpha(50),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: AppTheme.warmGold.withAlpha(35),
+                    blurRadius: 20,
                   ),
                 ],
               ),
@@ -262,13 +269,14 @@ class _UploadModalState extends State<UploadModal> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Encabezado en Verde Salvia & Rosado
+                      const QuinceTopRibbon(height: 4),
+                      // Encabezado en Verde Salvia, Rosado & Dorado
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                         decoration: const BoxDecoration(
                           gradient: AppTheme.heroGradient,
                           border: Border(
-                            bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
+                            bottom: BorderSide(color: AppTheme.goldBorder, width: 1.3),
                           ),
                         ),
                         child: Row(
@@ -276,9 +284,11 @@ class _UploadModalState extends State<UploadModal> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppTheme.softPinkBg,
+                                gradient: const LinearGradient(
+                                  colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                ),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.pinkBorder),
+                                border: Border.all(color: AppTheme.goldBorder),
                               ),
                               child: const Text('🌸', style: TextStyle(fontSize: 20)),
                             ),
@@ -427,14 +437,14 @@ class _UploadModalState extends State<UploadModal> {
 
                                 const SizedBox(height: 22),
 
-                                // Zona de selección de fotos (SOLO FOTOS)
+                                // Zona de selección de fotos y videos
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
                                         Text(
-                                          'Fotos del Evento (${_selectedFiles.length})',
+                                          'Recuerdos del Evento (${_selectedFiles.length})',
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
@@ -445,12 +455,14 @@ class _UploadModalState extends State<UploadModal> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.softPinkBg,
+                                            gradient: const LinearGradient(
+                                              colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                            ),
                                             borderRadius: BorderRadius.circular(10),
-                                            border: Border.all(color: AppTheme.pinkBorder),
+                                            border: Border.all(color: AppTheme.goldBorder),
                                           ),
                                           child: Text(
-                                            'Solo fotos 📷',
+                                            'Fotos y Videos 📸',
                                             style: GoogleFonts.poppins(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,
@@ -472,7 +484,7 @@ class _UploadModalState extends State<UploadModal> {
                                 ),
                                 const SizedBox(height: 8),
 
-                                // Dropzone clickeable
+                                // Dropzone clickeable en Verde Salvia, Rosado & Dorado
                                 InkWell(
                                   onTap: isUploading || _isPicking ? null : _pickPhotos,
                                   borderRadius: BorderRadius.circular(20),
@@ -480,10 +492,17 @@ class _UploadModalState extends State<UploadModal> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.sageLight,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          AppTheme.sageLight,
+                                          Color(0xFFFDF3F6),
+                                        ],
+                                      ),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: AppTheme.sageGreen.withAlpha(120),
+                                        color: AppTheme.goldBorder,
                                         width: 1.8,
                                         style: BorderStyle.solid,
                                       ),
@@ -496,10 +515,11 @@ class _UploadModalState extends State<UploadModal> {
                                           decoration: BoxDecoration(
                                             color: Colors.white,
                                             shape: BoxShape.circle,
+                                            border: Border.all(color: AppTheme.goldBorder),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppTheme.sageGreen.withAlpha(30),
-                                                blurRadius: 10,
+                                                color: AppTheme.warmGold.withAlpha(45),
+                                                blurRadius: 12,
                                               ),
                                             ],
                                           ),
@@ -647,37 +667,20 @@ class _UploadModalState extends State<UploadModal> {
 
                                 const SizedBox(height: 28),
 
-                                // BOTÓN DE ENVÍO
+                                // BOTÓN DE ENVÍO CON VERDE SALVIA & DORADO
                                 SizedBox(
                                   width: double.infinity,
-                                  height: 52,
-                                  child: ElevatedButton(
+                                  child: QuincePrimaryButton(
                                     onPressed: isUploading ? null : _submit,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.sageGreen,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(18),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.cloud_upload_rounded, color: Colors.white),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          _selectedFiles.isEmpty
-                                              ? 'Selecciona fotos y videos para continuar'
-                                              : (widget.storageService.myDeviceFolder != null
-                                                  ? 'Añadir a Mi Carpeta (${_selectedFiles.length}) ✨'
-                                                  : 'Guardar y Subir Recuerdos (${_selectedFiles.length}) ✨'),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    icon: Icons.cloud_upload_rounded,
+                                    label: _selectedFiles.isEmpty
+                                        ? 'Selecciona fotos y videos para continuar'
+                                        : (widget.storageService.myDeviceFolder != null
+                                            ? 'Añadir a Mi Carpeta (${_selectedFiles.length}) ✨'
+                                            : 'Guardar y Subir Recuerdos (${_selectedFiles.length}) ✨'),
+                                    minHeight: 52,
+                                    borderRadius: 18,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ],
@@ -692,33 +695,39 @@ class _UploadModalState extends State<UploadModal> {
                   if (isUploading)
                     Positioned.fill(
                       child: Container(
-                        color: Colors.white.withAlpha(240),
+                        color: Colors.white.withAlpha(242),
                         padding: const EdgeInsets.all(32),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(20),
+                                padding: const EdgeInsets.all(22),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.sageLight,
+                                  gradient: const LinearGradient(
+                                    colors: [AppTheme.sageLight, AppTheme.softPinkBg, AppTheme.goldLight],
+                                  ),
                                   shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.warmGold, width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.sageGreen.withAlpha(40),
-                                      blurRadius: 20,
+                                      color: AppTheme.warmGold.withAlpha(80),
+                                      blurRadius: 22,
                                     ),
                                   ],
                                 ),
                                 child: const Icon(
                                   Icons.cloud_upload_rounded,
                                   size: 48,
-                                  color: AppTheme.sageGreen,
+                                  color: AppTheme.sageDark,
                                 ),
-                              ),
+                              )
+                                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                                  .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.08, 1.08), duration: 1000.ms),
                               const SizedBox(height: 24),
                               Text(
-                                'Guardando recuerdos para Danna Alejandra...',
+                                'Guardando recuerdos para Danna Alejandra... 👑',
+                                textAlign: TextAlign.center,
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -750,8 +759,8 @@ class _UploadModalState extends State<UploadModal> {
                                       child: LinearProgressIndicator(
                                         value: progress > 0 ? progress : null,
                                         minHeight: 8,
-                                        backgroundColor: AppTheme.sageBorder,
-                                        color: AppTheme.sageGreen,
+                                        backgroundColor: AppTheme.sageLight,
+                                        color: AppTheme.warmGold,
                                       ),
                                     );
                                   },

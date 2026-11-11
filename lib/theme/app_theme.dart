@@ -18,20 +18,35 @@ class AppTheme {
   static const Color pinkBorder = Color(0xFFF5D6DE);
 
   static const Color warmGold = Color(0xFFD4AF37);
+  static const Color goldLight = Color(0xFFF8EDC2);
+  static const Color goldDeep = Color(0xFFA88225);
+  static const Color goldBorder = Color(0xFFE4CF82);
+  static const Color goldGlow = Color(0x40D4AF37);
   static const Color charcoal = Color(0xFF263328);
   static const Color mutedText = Color(0xFF5D7061);
   static const Color cardBg = Color(0xFFFFFFFF);
   static const Color scaffoldBg = Color(0xFFF7FBF8);
   static const Color borderLight = Color(0xFFE4ECE5);
 
-  // Gradientes armónicos Verde Salvia & Rosado
+  // Gradientes armónicos Verde Salvia, Rosado & Dorado para 15 Años
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
       Color(0xFFF6FAF6), // Blanco Salvia
       Color(0xFFEFF5F0), // Salvia Suave
-      Color(0xFFFDEEF2), // Toque Rosado sutil
+      Color(0xFFFDF1F4), // Toque Rosado
+      Color(0xFFFCF9ED), // Toque Dorado suave
+    ],
+  );
+
+  static const LinearGradient goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFF5E4A8),
+      Color(0xFFD4AF37),
+      Color(0xFFA88225),
     ],
   );
 
@@ -61,6 +76,16 @@ class AppTheme {
     colors: [
       Color(0xFF6E8B74),
       Color(0xFFE598A8),
+    ],
+  );
+
+  static const LinearGradient royalQuinceGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF4B6651), // Salvia
+      Color(0xFFB3576C), // Rosado
+      Color(0xFFB59332), // Dorado
     ],
   );
 

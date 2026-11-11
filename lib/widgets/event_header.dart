@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'festive_effects.dart';
 
 class EventHeader extends StatelessWidget {
   final int totalPhotos;
@@ -50,11 +51,11 @@ class EventHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: AppTheme.heroGradient,
         border: const Border(
-          bottom: BorderSide(color: AppTheme.borderLight, width: 1.5),
+          bottom: BorderSide(color: AppTheme.goldBorder, width: 1.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.sageGreen.withAlpha(20),
+            color: AppTheme.sageGreen.withAlpha(24),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -62,6 +63,15 @@ class EventHeader extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: QuinceTopRibbon(height: 3.5),
+          ),
+          const Positioned.fill(
+            child: QuinceAmbientBackdrop(particleCount: 24, opacityMultiplier: 0.85),
+          ),
           // Elementos decorativos de fondo en verde salvia y rosa
           Positioned(
             top: -20,
@@ -82,7 +92,7 @@ class EventHeader extends StatelessWidget {
             bottom: 10,
             left: 20,
             child: Opacity(
-              opacity: 0.15,
+              opacity: 0.18,
               child: Text(
                 '🌿 🌸 👑 ✨',
                 style: const TextStyle(fontSize: 28),
@@ -118,11 +128,11 @@ class EventHeader extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(30),
-                                border: Border.all(color: AppTheme.sageBorder),
+                                border: Border.all(color: AppTheme.goldBorder, width: 1.4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withAlpha(8),
-                                    blurRadius: 8,
+                                    color: AppTheme.warmGold.withAlpha(35),
+                                    blurRadius: 10,
                                   ),
                                 ],
                               ),
@@ -140,6 +150,8 @@ class EventHeader extends StatelessWidget {
                                       color: AppTheme.sageDark,
                                     ),
                                   ),
+                                  const SizedBox(width: 4),
+                                  const Text('✨', style: TextStyle(fontSize: 11)),
                                 ],
                               ),
                             ),
@@ -212,27 +224,56 @@ class EventHeader extends StatelessWidget {
 
                   const SizedBox(height: 22),
 
-                  // Corona e icono floral con animación
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(220),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.pinkBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.blushPink.withAlpha(50),
-                          blurRadius: 18,
+                  // Corona Real con halo Dorado, Rosado y Salvia animado
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('✨', style: TextStyle(fontSize: 22))
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .fade(begin: 0.3, end: 1.0, duration: 1500.ms)
+                          .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
+                      const SizedBox(width: 14),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFFFFFFFF),
+                              Color(0xFFFDF2F4),
+                              Color(0xFFFCF7E3),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.warmGold, width: 2.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.warmGold.withAlpha(75),
+                              blurRadius: 22,
+                              spreadRadius: 2,
+                            ),
+                            BoxShadow(
+                              color: AppTheme.blushPink.withAlpha(60),
+                              blurRadius: 16,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const Text('👑', style: TextStyle(fontSize: 38)),
-                  )
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.08, 1.08), duration: 2200.ms),
-                  const SizedBox(height: 12),
+                        child: const Text('👑', style: TextStyle(fontSize: 40)),
+                      )
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.10, 1.10), duration: 2000.ms)
+                          .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
+                      const SizedBox(width: 14),
+                      const Text('✨', style: TextStyle(fontSize: 22))
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .fade(begin: 1.0, end: 0.3, duration: 1500.ms)
+                          .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.8, 0.8)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
-                  // Título principal con efecto Shimmer para Danna
+                  // Título principal con efecto Shimmer Dorado y Rosado
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
@@ -253,14 +294,34 @@ class EventHeader extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             color: AppTheme.deepRose,
                             letterSpacing: -0.5,
+                            shadows: [
+                              Shadow(
+                                color: AppTheme.warmGold.withAlpha(90),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   )
                       .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .shimmer(duration: 2800.ms, color: const Color(0xFFFFDCE5)),
+                      .shimmer(duration: 2800.ms, color: AppTheme.goldLight),
                   const SizedBox(height: 6),
+
+                  // Decoración botánica y dorada
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(height: 1.5, width: 42, color: AppTheme.goldBorder),
+                      const SizedBox(width: 8),
+                      const Text('🌿✨🌸✨🌿', style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 8),
+                      Container(height: 1.5, width: 42, color: AppTheme.goldBorder),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
 
                   Text(
                     '¡Bienvenido a mi álbum de recuerdos! Sube tus fotos de esta noche y déjame tu dedicatoria.',
@@ -274,7 +335,7 @@ class EventHeader extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Métricas del evento
+                  // Métricas del evento (Verde Salvia, Rosado & Dorado)
                   Wrap(
                     alignment: WrapAlignment.center,
                     spacing: 14,
@@ -285,52 +346,40 @@ class EventHeader extends StatelessWidget {
                         value: '$totalPhotos',
                         label: 'Fotos de la fiesta',
                         color: AppTheme.sageDark,
+                        borderColor: AppTheme.sageBorder,
                       ),
                       _buildMetricPill(
                         icon: Icons.folder_shared_rounded,
                         value: '$totalFolders',
                         label: 'Carpetas de invitados',
-                        color: AppTheme.dustyPink,
+                        color: AppTheme.deepRose,
+                        borderColor: AppTheme.pinkBorder,
                       ),
                       _buildMetricPill(
                         icon: Icons.favorite_rounded,
                         value: '$totalLikes',
                         label: 'Amores',
-                        color: AppTheme.deepRose,
+                        color: AppTheme.goldDeep,
+                        borderColor: AppTheme.goldBorder,
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 26),
 
-                  // BOTÓN PRINCIPAL DE SUBIDA (Verde Salvia y Rosado)
-                  ElevatedButton.icon(
+                  // BOTÓN PRINCIPAL DE SUBIDA (Verde Salvia con borde Dorado y destello)
+                  QuincePrimaryButton(
                     onPressed: onUploadPressed,
-                    icon: Icon(
-                      isAccessUnlocked ? Icons.add_photo_alternate_rounded : Icons.lock_open_rounded,
-                      size: 22,
-                    ),
-                    label: Text(
-                      isAccessUnlocked
-                          ? (isMobile ? 'Subir Mis Fotos' : 'Subir Fotos y Dedicatoria 🌸')
-                          : 'Desbloquear y Subir Fotos 🔒',
-                      style: GoogleFonts.poppins(
-                        fontSize: isMobile ? 15 : 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isAccessUnlocked ? AppTheme.sageGreen : AppTheme.dustyPink,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 26 : 38,
-                        vertical: isMobile ? 14 : 18,
-                      ),
-                      elevation: 5,
-                      shadowColor: (isAccessUnlocked ? AppTheme.sageGreen : AppTheme.dustyPink).withAlpha(120),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                    icon: isAccessUnlocked ? Icons.add_photo_alternate_rounded : Icons.lock_open_rounded,
+                    label: isAccessUnlocked
+                        ? (isMobile ? 'Subir Mis Fotos' : 'Subir Fotos y Dedicatoria 🌸')
+                        : 'Desbloquear y Subir Fotos 🔒',
+                    usePinkGradient: !isAccessUnlocked,
+                    borderRadius: 30,
+                    fontSize: isMobile ? 15 : 17,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 26 : 38,
+                      vertical: isMobile ? 14 : 18,
                     ),
                   ),
 
@@ -341,11 +390,11 @@ class EventHeader extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: AppTheme.sageBorder),
+                      border: Border.all(color: AppTheme.goldBorder, width: 1.3),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(8),
-                          blurRadius: 10,
+                          color: AppTheme.warmGold.withAlpha(30),
+                          blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -422,12 +471,14 @@ class EventHeader extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.sageGreen : Colors.transparent,
+          gradient: isActive ? AppTheme.sageGradient : null,
+          color: isActive ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
+          border: isActive ? Border.all(color: AppTheme.goldBorder, width: 1.2) : null,
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppTheme.sageGreen.withAlpha(80),
+                    color: AppTheme.sageGreen.withAlpha(85),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -492,18 +543,19 @@ class EventHeader extends StatelessWidget {
     required String value,
     required String label,
     required Color color,
+    Color? borderColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(230),
+        color: Colors.white.withAlpha(240),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withAlpha(50)),
+        border: Border.all(color: borderColor ?? color.withAlpha(70), width: 1.3),
         boxShadow: [
           BoxShadow(
-            color: color.withAlpha(20),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: (borderColor ?? color).withAlpha(35),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
