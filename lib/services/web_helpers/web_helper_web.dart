@@ -62,12 +62,13 @@ class WebHelperImpl extends WebHelper {
 
   @override
   String buildAccessUrl(String accessKey) {
+    final safeKey = Uri.encodeQueryComponent(accessKey.trim());
     try {
       final origin = web.window.location.origin;
       final pathname = web.window.location.pathname;
-      return '$origin$pathname?key=$accessKey';
+      return '$origin$pathname?key=$safeKey';
     } catch (_) {
-      return 'https://dotsmemories.danna15.com/?key=$accessKey';
+      return 'https://dotsmemories.danna15.com/?key=$safeKey';
     }
   }
 

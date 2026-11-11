@@ -40,6 +40,54 @@ function buildPhotoPayload_(id, name, viewUrl) {
   };
 }
 
+function isAllowedMediaFile_(fileName, mimeType) {
+  const safeName = (fileName || "").trim();
+  const mime = (mimeType || "").trim().toLowerCase();
+  if (safeName.indexOf("Dedicatoria_") === 0 || mime === "text/plain") {
+    return false;
+  }
+  const hasMediaMime = mime.indexOf("image/") === 0 || mime.indexOf("video/") === 0;
+  const hasMediaExt = /\.(jpg|jpeg|png|webp|gif|heic|heif|mp4|mov|webm|avi|mkv|m4v|3gp)$/i.test(safeName);
+  return hasMediaMime || hasMediaExt;
+}
+
+function readFolderMetadata_(folder) {
+  try {
+    const desc = folder.getDescription();
+    if (desc && desc.startsWith("{")) {
+      return JSON.parse(desc);
+    }
+  } catch (err) { }
+  return null;
+}
+
+function isFolderChildOfMain_(folder, mainFolderId) {
+  if (!folder || !mainFolderId) return false;
+  try {
+    const parents = folder.getParents();
+    while (parents.hasNext()) {
+      if (parents.next().getId() === mainFolderId) {
+        return true;
+      }
+    }
+  } catch (err) { }
+  return false;
+}
+
+function isAdminAuthorized_(data) {
+  const role = ((data && data.role) || "").trim().toLowerCase();
+  if (role !== "admin") {
+    return false;
+  }
+  try {
+    const secret = PropertiesService.getScriptProperties().getProperty("ADMIN_SECRET");
+    if (secret && secret.trim().length > 0) {
+      return ((data && data.adminSecret) || "").trim() === secret.trim();
+    }
+  } catch (err) { }
+  return true;
+}
+
 /**
  * Maneja peticiones POST desde la aplicación web (subida de fotos y dedicatoria)
  */
@@ -78,10 +126,19 @@ function doPost(e) {
     try {
       mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
 
-      // A) Buscar por ID directo si fue enviado por la app
+      const mainFolderId = mainFolder.getId();
+
+      // A) Buscar por ID directo solo si está dentro de la carpeta principal y pertenece al mismo dispositivo
       if (existingFolderId) {
         try {
-          guestFolder = DriveApp.getFolderById(existingFolderId);
+          const candidateFolder = DriveApp.getFolderById(existingFolderId);
+          if (isFolderChildOfMain_(candidateFolder, mainFolderId)) {
+            const parsedCand = readFolderMetadata_(candidateFolder);
+            const storedDev = parsedCand && parsedCand.deviceId ? String(parsedCand.deviceId) : "";
+            if (!storedDev || (deviceId && storedDev === deviceId)) {
+              guestFolder = candidateFolder;
+            }
+          }
         } catch (err) {
           guestFolder = null;
         }
@@ -92,28 +149,27 @@ function doPost(e) {
         const subfolders = mainFolder.getFolders();
         while (subfolders.hasNext()) {
           const sf = subfolders.next();
-          try {
-            const desc = sf.getDescription();
-            if (desc && desc.startsWith("{")) {
-              const parsed = JSON.parse(desc);
-              if (parsed.deviceId && parsed.deviceId === deviceId) {
-                guestFolder = sf;
-                break;
-              }
-            }
-          } catch (e2) { }
+          const parsed = readFolderMetadata_(sf);
+          if (parsed && parsed.deviceId && parsed.deviceId === deviceId) {
+            guestFolder = sf;
+            break;
+          }
         }
       }
 
-      // C) Fallback: Buscar por nombre del invitado
+      // C) Fallback: Buscar por nombre del invitado solo si no pertenece a otro dispositivo distinto
       if (!guestFolder && safeGuestName) {
         const subfolders = mainFolder.getFolders();
         while (subfolders.hasNext()) {
           const sf = subfolders.next();
           const sfName = sf.getName();
           if (sfName.startsWith(safeGuestName + " (") || sfName.toLowerCase() === safeGuestName.toLowerCase()) {
-            guestFolder = sf;
-            break;
+            const parsed = readFolderMetadata_(sf);
+            const storedDev = parsed && parsed.deviceId ? String(parsed.deviceId) : "";
+            if (!storedDev || (deviceId && storedDev === deviceId)) {
+              guestFolder = sf;
+              break;
+            }
           }
         }
       }
@@ -174,7 +230,12 @@ function doPost(e) {
         const item = photos[i];
         const base64Data = item.base64;
         const contentType = item.type || "image/jpeg";
-        const fileName = item.name || ("archivo_" + (i + 1) + ".jpg");
+        const rawFileName = String(item.name || ("archivo_" + (i + 1) + ".jpg"));
+        const fileName = rawFileName.replace(/[\/\\:*?"<>|]/g, "_").trim();
+        if (!base64Data || !isAllowedMediaFile_(fileName, contentType)) {
+          Logger.log("⚠️ [doPost] Archivo rechazado por tipo no permitido: " + fileName + " (" + contentType + ")");
+          continue;
+        }
 
         const decodedBytes = Utilities.base64Decode(base64Data);
         const blob = Utilities.newBlob(decodedBytes, contentType, fileName);
@@ -368,9 +429,19 @@ function findSubfolderInMain_(mainFolder, folderId, deviceId) {
 }
 
 /**
- * Elimina (envía a la papelera de Google Drive) una subcarpeta dentro de la carpeta del evento
+ * Elimina (envía a la papelera de Google Drive) una subcarpeta dentro de la carpeta del evento.
+ * Solo autorizado para el administrador.
  */
 function deleteFolderInDrive_(data) {
+  if (!isAdminAuthorized_(data)) {
+    return responseJSON({
+      status: "error",
+      action: "deleteFolder",
+      code: 403,
+      message: "Acción no autorizada: solo el administrador puede eliminar carpetas."
+    });
+  }
+
   const folderId = (data.folderId || "").trim();
   const deviceId = (data.deviceId || "").trim();
 
@@ -427,13 +498,24 @@ function deleteFolderInDrive_(data) {
 }
 
 /**
- * Elimina (envía a la papelera de Google Drive) un archivo individual y actualiza la caché de su carpeta
+ * Elimina (envía a la papelera de Google Drive) un archivo multimedia individual y actualiza la caché de su carpeta.
+ * Requiere rol "admin" o coincidencia estricta del deviceId dueño de la carpeta.
  */
 function deleteFileInDrive_(data) {
+  const isAdmin = isAdminAuthorized_(data);
   const fileId = (data.fileId || "").trim();
   const folderId = (data.folderId || "").trim();
   const deviceId = (data.deviceId || "").trim();
   const fileName = (data.fileName || "").trim();
+
+  if (!isAdmin && !deviceId) {
+    return responseJSON({
+      status: "error",
+      action: "deleteFile",
+      code: 403,
+      message: "No autorizado: falta el identificador del dispositivo dueño del archivo."
+    });
+  }
 
   if (!fileId && !(fileName && (folderId || deviceId))) {
     return responseJSON({
@@ -460,9 +542,16 @@ function deleteFileInDrive_(data) {
             targetFile = candidate;
             break;
           }
-          const grandParents = parent.getParents();
-          while (grandParents.hasNext()) {
-            if (grandParents.next().getId() === mainFolderId) {
+          if (isAdmin && isFolderChildOfMain_(parent, mainFolderId)) {
+            targetFile = candidate;
+            if (!targetFolder) {
+              targetFolder = parent;
+            }
+            break;
+          }
+          if (!isAdmin && isFolderChildOfMain_(parent, mainFolderId)) {
+            const parentMeta = readFolderMetadata_(parent);
+            if (parentMeta && parentMeta.deviceId && parentMeta.deviceId === deviceId) {
               targetFile = candidate;
               if (!targetFolder) {
                 targetFolder = parent;
@@ -470,7 +559,6 @@ function deleteFileInDrive_(data) {
               break;
             }
           }
-          if (targetFile) break;
         }
       } catch (lookupErr) { }
     }
@@ -480,6 +568,35 @@ function deleteFileInDrive_(data) {
       if (filesByName.hasNext()) {
         targetFile = filesByName.next();
       }
+    }
+
+    if (!isAdmin) {
+      if (!targetFolder) {
+        return responseJSON({
+          status: "error",
+          action: "deleteFile",
+          code: 403,
+          message: "No autorizado: no se pudo verificar la propiedad de la carpeta."
+        });
+      }
+      const folderMeta = readFolderMetadata_(targetFolder);
+      if (!folderMeta || !folderMeta.deviceId || folderMeta.deviceId !== deviceId) {
+        return responseJSON({
+          status: "error",
+          action: "deleteFile",
+          code: 403,
+          message: "No autorizado: solo puedes eliminar fotos o videos subidos desde tu dispositivo."
+        });
+      }
+    }
+
+    if (targetFile && !isAllowedMediaFile_(targetFile.getName(), targetFile.getMimeType())) {
+      return responseJSON({
+        status: "error",
+        action: "deleteFile",
+        code: 403,
+        message: "Acción no permitida: solo se pueden eliminar archivos de foto o video."
+      });
     }
 
     const resolvedFileId = targetFile ? targetFile.getId() : fileId;

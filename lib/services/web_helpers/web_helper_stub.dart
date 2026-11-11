@@ -29,7 +29,8 @@ class WebHelperImpl extends WebHelper {
 
   @override
   String buildAccessUrl(String accessKey) {
-    return 'https://dotsmemories.danna15.com/?key=$accessKey';
+    final safeKey = Uri.encodeQueryComponent(accessKey.trim());
+    return 'https://dotsmemories.danna15.com/?key=$safeKey';
   }
 
   @override

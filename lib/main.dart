@@ -33,6 +33,7 @@ Future<void> main() async {
 
   final authService = AppwriteAuthService();
   await authService.init();
+  storageService.bindAdminSessionChecker(() => authService.isLoggedIn);
 
   runApp(DotsMemoriesApp(
     storageService: storageService,

@@ -45,10 +45,63 @@ class StorageService {
   static const String _prefKeyMyGuestName = 'dots_my_guest_name_v1';
   static const String _prefKeyDeviceId = 'dots_device_id_v1';
 
-  final http.Client _httpClient = http.Client();
+  http.Client _httpClient = http.Client();
   Future<int>? _inFlightSync;
+  bool Function()? _isAdminSessionChecker;
 
   String deviceId = '';
+
+  @visibleForTesting
+  void setHttpClientForTest(http.Client? client) {
+    _httpClient = client ?? http.Client();
+  }
+
+  /// Vincula el verificador de sesión de administrador (Appwrite Auth)
+  void bindAdminSessionChecker(bool Function()? checker) {
+    _isAdminSessionChecker = checker;
+  }
+
+  bool get _hasExplicitNonAdminSession =>
+      _isAdminSessionChecker != null && !_isAdminSessionChecker!();
+
+  static const Set<String> _allowedMediaExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'gif',
+    'heic',
+    'heif',
+    'mp4',
+    'mov',
+    'webm',
+    'avi',
+    'mkv',
+    'm4v',
+    '3gp',
+  };
+
+  /// Valida que un archivo seleccionado sea únicamente imagen o video permitido (bloquea HTML/JS/SVG/scripts)
+  static bool isAllowedMediaUpload(SelectedFile file) {
+    final cleanName = file.name.trim().toLowerCase();
+    if (cleanName.isEmpty) return false;
+    final dotIdx = cleanName.lastIndexOf('.');
+    if (dotIdx == -1 || dotIdx == cleanName.length - 1) return false;
+    final ext = cleanName.substring(dotIdx + 1);
+    if (!_allowedMediaExtensions.contains(ext)) return false;
+
+    final mime = file.mimeType.trim().toLowerCase();
+    if (mime == 'image/svg+xml' ||
+        mime.contains('html') ||
+        mime.contains('javascript') ||
+        mime.contains('ecmascript')) {
+      return false;
+    }
+    return mime.isEmpty ||
+        mime.startsWith('image/') ||
+        mime.startsWith('video/') ||
+        mime == 'application/octet-stream';
+  }
 
   final ValueNotifier<List<MemoryFolder>> foldersNotifier = ValueNotifier<List<MemoryFolder>>([]);
   final ValueNotifier<AppConfig> configNotifier = ValueNotifier<AppConfig>(AppConfig());
@@ -77,17 +130,23 @@ class StorageService {
   bool isFolderOwnedByGuest(MemoryFolder folder) {
     final myIds = myFolderIdsNotifier.value;
     final guestName = myGuestNameNotifier.value.trim().toLowerCase();
+    final folderDev = folder.deviceId?.trim() ?? '';
 
-    // 1. Vinculación estricta por ID de dispositivo
-    if (deviceId.isNotEmpty && folder.deviceId != null && folder.deviceId == deviceId) {
-      return true;
+    // 1. Si la carpeta tiene un deviceId asignado, exigir coincidencia de dispositivo o ID local.
+    // Bloquea apropiación por nombre incluso si el atacante limpia su deviceId local.
+    if (folderDev.isNotEmpty) {
+      if (deviceId.isNotEmpty && folderDev == deviceId) {
+        return true;
+      }
+      return myIds.contains(folder.id) ||
+          (folder.googleFolderId != null && myIds.contains(folder.googleFolderId));
     }
-    // 2. Vinculación por IDs de carpetas registradas localmente
+
+    // 2. Vinculación por IDs locales o recuperación legada de carpetas sin deviceId remoto.
     if (myIds.contains(folder.id) ||
         (folder.googleFolderId != null && myIds.contains(folder.googleFolderId))) {
       return true;
     }
-    // 3. Vinculación por nombre del invitado de este dispositivo
     if (guestName.isNotEmpty && folder.guestName.trim().toLowerCase() == guestName) {
       return true;
     }
@@ -173,19 +232,37 @@ class StorageService {
     syncMemoriesFromGoogle();
   }
 
-  Future<void> saveConfig(AppConfig newConfig) async {
+  Future<bool> saveConfig(AppConfig newConfig, {bool requireAdmin = false}) async {
+    if (requireAdmin && _hasExplicitNonAdminSession) {
+      return false;
+    }
+    final sanitizedUrl = newConfig.googleScriptUrl.trim();
+    if (sanitizedUrl.isNotEmpty && !DownloadHelper.isSafeExternalUrl(sanitizedUrl)) {
+      newConfig.googleScriptUrl = configNotifier.value.googleScriptUrl;
+    }
     configNotifier.value = newConfig;
     if (!newConfig.requireAccessKey) {
       isAccessUnlockedNotifier.value = true;
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKeyConfig, jsonEncode(newConfig.toJson()));
+    return true;
   }
 
   Future<bool> unlockWithKey(String enteredKey) async {
     final activeConfig = configNotifier.value;
-    if (!activeConfig.requireAccessKey ||
-        enteredKey.trim().toUpperCase() == activeConfig.accessKey.trim().toUpperCase()) {
+    if (!activeConfig.requireAccessKey) {
+      isAccessUnlockedNotifier.value = true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyUnlocked, true);
+      return true;
+    }
+    final normalizedEntered = enteredKey.trim().toUpperCase();
+    final normalizedExpected = activeConfig.accessKey.trim().toUpperCase();
+    if (normalizedEntered.isEmpty || normalizedExpected.isEmpty) {
+      return false;
+    }
+    if (normalizedEntered == normalizedExpected) {
       isAccessUnlockedNotifier.value = true;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyUnlocked, true);
@@ -235,32 +312,53 @@ class StorageService {
     required List<SelectedFile> files,
   }) async {
     if (files.isEmpty || isUploadingNotifier.value) return false;
+    final isAdminSession = _isAdminSessionChecker?.call() ?? false;
+    if (configNotifier.value.requireAccessKey &&
+        !isAccessUnlockedNotifier.value &&
+        !isAdminSession) {
+      uploadStatusNotifier.value = 'Acceso restringido: desbloquea el evento antes de subir recuerdos.';
+      return false;
+    }
+
+    final safeInputFiles = files.where(isAllowedMediaUpload).toList();
+    if (safeInputFiles.isEmpty) {
+      uploadStatusNotifier.value = 'Tipo de archivo no permitido. Sube solo fotos o videos.';
+      return false;
+    }
 
     isUploadingNotifier.value = true;
     uploadProgressNotifier.value = 0.05;
     uploadStatusNotifier.value = 'Optimizando archivos para envío rápido...';
 
     final processedFiles = <SelectedFile>[];
-    for (int i = 0; i < files.length; i++) {
-      final f = files[i];
+    for (int i = 0; i < safeInputFiles.length; i++) {
+      final f = safeInputFiles[i];
+      final sanitizedName = f.name.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_').trim();
       if (!f.isVideo && f.bytes.length > 320 * 1024) {
         final optimized = await DownloadHelper.optimizeImageForUpload(
           bytes: f.bytes,
-          fileName: f.name,
+          fileName: sanitizedName,
           mimeType: f.mimeType,
         );
         processedFiles.add(
           SelectedFile(
-            name: optimized.fileName,
+            name: optimized.fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_'),
             bytes: optimized.bytes,
             size: optimized.bytes.length,
             mimeType: optimized.mimeType,
           ),
         );
       } else {
-        processedFiles.add(f);
+        processedFiles.add(
+          SelectedFile(
+            name: sanitizedName,
+            bytes: f.bytes,
+            size: f.size,
+            mimeType: f.mimeType,
+          ),
+        );
       }
-      uploadProgressNotifier.value = 0.05 + ((i + 1) / files.length) * 0.10;
+      uploadProgressNotifier.value = 0.05 + ((i + 1) / safeInputFiles.length) * 0.10;
     }
 
     final totalFiles = processedFiles.length;
@@ -673,9 +771,13 @@ class StorageService {
 
             final remoteDevId = folderMap['deviceId'] as String?;
             final folderId = folderMap['folderId'] as String?;
+            final belongsToAnotherDevice =
+                remoteDevId != null && remoteDevId.isNotEmpty && remoteDevId != deviceId;
             final isMyDevice = (remoteDevId != null && remoteDevId.isNotEmpty && remoteDevId == deviceId) ||
                 (folderId != null && myFolderIdsNotifier.value.contains(folderId)) ||
-                (myGuestNameNotifier.value.isNotEmpty && cleanGuestName.toLowerCase() == myGuestNameNotifier.value.toLowerCase());
+                (!belongsToAnotherDevice &&
+                    myGuestNameNotifier.value.isNotEmpty &&
+                    cleanGuestName.toLowerCase() == myGuestNameNotifier.value.toLowerCase());
 
             if (isMyDevice && folderId != null) {
               final myIds = List<String>.from(myFolderIdsNotifier.value);
@@ -839,6 +941,13 @@ class StorageService {
 
   /// Elimina la carpeta desde el administrador y también la envía a la papelera en Google Drive
   Future<({bool success, String message})> deleteFolder(MemoryFolder folder) async {
+    if (_hasExplicitNonAdminSession) {
+      return (
+        success: false,
+        message: 'Acción no autorizada: solo el administrador autenticado puede eliminar carpetas.',
+      );
+    }
+
     final currentConfig = configNotifier.value;
     final targetGoogleFolderId = folder.googleFolderId ??
         ((!folder.id.startsWith('folder_')) ? folder.id : null);
@@ -854,6 +963,7 @@ class StorageService {
       final driveResult = await _postDriveAction(
         'deleteFolder',
         {
+          'role': 'admin',
           'folderId': targetGoogleFolderId ?? '',
           'deviceId': folder.deviceId ?? '',
         },
@@ -907,6 +1017,23 @@ class StorageService {
     MemoryFolder? folderHint,
     bool requireGuestOwnership = false,
   }) async {
+    if (!requireGuestOwnership && _hasExplicitNonAdminSession) {
+      return (
+        success: false,
+        message: 'Acción no autorizada: inicia sesión como anfitrión o elimina únicamente tus propias fotos.',
+      );
+    }
+
+    if (requireGuestOwnership &&
+        configNotifier.value.requireAccessKey &&
+        !isAccessUnlockedNotifier.value &&
+        _hasExplicitNonAdminSession) {
+      return (
+        success: false,
+        message: 'Debes desbloquear el evento para gestionar tus fotos.',
+      );
+    }
+
     final currentList = List<MemoryFolder>.from(foldersNotifier.value);
     final extractedFileId = _extractDriveFileId(photo);
     bool folderContainsPhoto(MemoryFolder f) =>
@@ -966,9 +1093,10 @@ class StorageService {
       final driveResult = await _postDriveAction(
         'deleteFile',
         {
+          'role': requireGuestOwnership ? 'guest' : 'admin',
           'fileId': targetGoogleFileId ?? '',
           'folderId': targetGoogleFolderId ?? '',
-          'deviceId': owningFolder?.deviceId ?? '',
+          'deviceId': requireGuestOwnership ? deviceId : (owningFolder?.deviceId ?? ''),
           'fileName': photo.fileName,
         },
         actionVerb: 'eliminar el archivo',
@@ -1005,9 +1133,13 @@ class StorageService {
     );
   }
 
-  Future<void> resetToDemo() async {
+  Future<bool> resetToDemo({bool requireAdmin = true}) async {
+    if (requireAdmin && _hasExplicitNonAdminSession) {
+      return false;
+    }
     foldersNotifier.value = SampleData.getInitialMemories();
     await _saveFoldersToDisk();
+    return true;
   }
 
   /// Prueba la conexión con el script de Google

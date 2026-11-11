@@ -82,14 +82,18 @@ class _SettingsDialogState extends State<SettingsDialog> {
       requireAccessKey: _requireKey,
     );
 
-    await widget.storageService.saveConfig(updated);
+    final saved = await widget.storageService.saveConfig(updated, requireAdmin: true);
 
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Configuración guardada correctamente 🌸'),
-          backgroundColor: AppTheme.sageDark,
+          content: Text(
+            saved
+                ? 'Configuración guardada correctamente 🌸'
+                : 'Acción no autorizada: inicia sesión como anfitrión.',
+          ),
+          backgroundColor: saved ? AppTheme.sageDark : const Color(0xFFB91C1C),
         ),
       );
     }
@@ -667,10 +671,16 @@ function responseJSON(obj) {
                         ),
                         TextButton(
                           onPressed: () async {
-                            await widget.storageService.resetToDemo();
+                            final resetOk = await widget.storageService.resetToDemo();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Recuerdos de demo restaurados')),
+                                SnackBar(
+                                  content: Text(
+                                    resetOk
+                                        ? 'Recuerdos de demo restaurados'
+                                        : 'Acción no autorizada: solo el anfitrión.',
+                                  ),
+                                ),
                               );
                             }
                           },

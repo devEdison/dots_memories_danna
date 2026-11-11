@@ -11,8 +11,35 @@ class DownloadHelper {
     webHelper.downloadText(text, fileName);
   }
 
+  static const Set<String> _allowedRelativeAssets = {
+    'tarjeta_mesa_qr.html',
+    'tarjeta_mesa_qr.pdf',
+  };
+
+  /// Valida que una URL externa o asset local sea seguro antes de abrirlo
+  static bool isSafeExternalUrl(String url) {
+    final cleaned = url.trim();
+    if (cleaned.isEmpty) return false;
+    if (cleaned.contains(RegExp(r'[\x00-\x1F\x7F]'))) return false;
+    if (_allowedRelativeAssets.contains(cleaned)) return true;
+
+    final uri = Uri.tryParse(cleaned);
+    if (uri == null || !uri.hasScheme) return false;
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme == 'https') return uri.host.isNotEmpty;
+    if (scheme == 'http') {
+      final host = uri.host.toLowerCase();
+      return host == 'localhost' || host == '127.0.0.1';
+    }
+    return false;
+  }
+
   static void openUrl(String url) {
-    webHelper.openUrl(url);
+    if (!isSafeExternalUrl(url)) {
+      debugPrint('Bloqueado intento de abrir URL no segura: $url');
+      return;
+    }
+    webHelper.openUrl(url.trim());
   }
 
   static void printPage() {
