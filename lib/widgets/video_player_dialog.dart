@@ -14,11 +14,23 @@ class VideoPlayerDialog extends StatelessWidget {
     this.guestName,
   });
 
+  String _resolvePlayableVideoUrl(String rawUrl) {
+    const drivePrefix = 'https://lh3.googleusercontent.com/d/';
+    if (rawUrl.startsWith(drivePrefix)) {
+      final tail = rawUrl.substring(drivePrefix.length);
+      final cleanId = tail.split(RegExp(r'[=/?#]')).first;
+      if (cleanId.isNotEmpty) {
+        return 'https://drive.google.com/file/d/$cleanId/view';
+      }
+    }
+    return rawUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 768;
-    final videoUrl = item.remoteUrl ?? '';
+    final videoUrl = _resolvePlayableVideoUrl(item.remoteUrl ?? '');
 
     return Dialog(
       backgroundColor: Colors.transparent,

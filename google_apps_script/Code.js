@@ -3,26 +3,42 @@
  * BACKEND GOOGLE APPS SCRIPT - DOTS MEMORIES: 15 AÑOS DE DANNA
  * =========================================================================
  * Álbum Destino de Google Fotos:
- * https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UJ4UZ0AYaRKKtLha7dIAWfUkKmJm
+ * https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm
  *
- * Este script se ejecuta en tu cuenta de Google de forma 100% gratuita.
- * Recibe las fotos y comentarios que suben los invitados desde la web Flutter
- * y las guarda en tu Álbum de Google Fotos y en carpetas organizadas en Google Drive.
+ * Almacenamiento exclusivo en Google (Drive + Google Fotos), optimizado
+ * con LockService por sección corta, creación por lotes en Google Photos API
+ * y caché compacta de metadatos para evitar saturar las subidas.
  *
  * CÓMO PUBLICAR / ACTUALIZAR (MUY IMPORTANTE):
  * 1. Pega este código completo en tu archivo Code.gs en script.google.com.
  * 2. Guarda los cambios (Ctrl+S o Cmd+S).
- * 3. Haz clic en "Implementar" (botón azul arriba a la derecha).
- * 4. Selecciona "Gestionar implementaciones".
- * 5. Haz clic en el icono del LÁPIZ (Editar) de la implementación activa.
- * 6. En el desplegable "Versión", selecciona SIEMPRE: "Nueva versión".
- * 7. Haz clic en el botón azul "Implementar".
- * ¡Listo! Así tus cambios se aplican de inmediato en la aplicación web.
+ * 3. Haz clic en "Implementar" -> "Gestionar implementaciones".
+ * 4. Haz clic en el icono del LÁPIZ (Editar) de la implementación activa.
+ * 5. En "Versión", selecciona SIEMPRE: "Nueva versión" y pulsa "Implementar".
  */
 
 const GOOGLE_PHOTOS_ALBUM_ID = "AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm";
 const GOOGLE_PHOTOS_ALBUM_URL = "https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm";
 const MAIN_DRIVE_FOLDER_NAME = "15 Años Danna - Fotos de Invitados";
+
+function acquireScriptLock_(waitMs) {
+  try {
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(waitMs || 10000)) {
+      return lock;
+    }
+  } catch (e) { }
+  return null;
+}
+
+function buildPhotoPayload_(id, name, viewUrl) {
+  return {
+    name: name,
+    id: id,
+    url: "https://lh3.googleusercontent.com/d/" + id,
+    viewUrl: viewUrl || ("https://drive.google.com/file/d/" + id + "/view")
+  };
+}
 
 /**
  * Maneja peticiones POST desde la aplicación web (subida de fotos y dedicatoria)
@@ -41,171 +57,215 @@ function doPost(e) {
     const photos = data.photos || [];
     const deviceId = (data.deviceId || "").trim();
     const existingFolderId = (data.folderId || "").trim();
+    const skipDedication = data.skipDedication === true;
 
-    Logger.log("📩 [doPost] Recibiendo subida de: " + guestName + " | Fotos: " + photos.length + " | Device: " + deviceId);
+    Logger.log("📩 [doPost] Recibiendo subida de: " + guestName + " | Archivos: " + photos.length + " | Device: " + deviceId);
 
-    // 1. Obtener o crear carpeta principal del evento en Google Drive
-    const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
-
-    // 2. Obtener carpeta existente vinculada al dispositivo o crear una nueva
     const safeGuestName = guestName.replace(/[\/\\:*?"<>|]/g, "_");
-    var guestFolder = null;
-
-    // A) Buscar por ID directo si fue enviado por la app
-    if (existingFolderId) {
-      try {
-        guestFolder = DriveApp.getFolderById(existingFolderId);
-      } catch (err) {
-        guestFolder = null;
-      }
-    }
-
-    // B) Buscar por deviceId en los metadatos de las carpetas existentes
-    if (!guestFolder && deviceId) {
-      const subfolders = mainFolder.getFolders();
-      while (subfolders.hasNext()) {
-        const sf = subfolders.next();
-        try {
-          const desc = sf.getDescription();
-          if (desc && desc.startsWith("{")) {
-            const parsed = JSON.parse(desc);
-            if (parsed.deviceId && parsed.deviceId === deviceId) {
-              guestFolder = sf;
-              break;
-            }
-          }
-        } catch (e) { }
-      }
-    }
-
-    // C) Fallback: Si no se encontró por deviceId, buscar por nombre del invitado
-    if (!guestFolder && safeGuestName) {
-      const subfolders = mainFolder.getFolders();
-      while (subfolders.hasNext()) {
-        const sf = subfolders.next();
-        const sfName = sf.getName();
-        if (sfName.startsWith(safeGuestName + " (") || sfName.toLowerCase() === safeGuestName.toLowerCase()) {
-          guestFolder = sf;
-          break;
-        }
-      }
-    }
-
     const now = new Date();
 
-    if (!guestFolder) {
-      const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd_HH-mm");
-      const guestFolderName = safeGuestName + " (" + dateStr + ")";
-      guestFolder = mainFolder.createFolder(guestFolderName);
-      guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    }
-
-    // Guardar o actualizar metadatos iniciales con deviceId en la descripción
+    // 1. Sección corta con bloqueo únicamente para buscar/crear carpetas sin duplicados
+    var mainFolder = null;
+    var guestFolder = null;
+    const folderLock = acquireScriptLock_(12000);
     try {
-      guestFolder.setDescription(JSON.stringify({
-        guestName: guestName,
-        comment: comment,
-        deviceId: deviceId,
-        date: now.toISOString()
-      }));
-    } catch (e) { }
+      mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
 
-    // 3. Guardar o actualizar el archivo de texto con la dedicatoria (evita duplicados al subir más fotos)
-    const noteContent = "═══════════════════════════════════════════════════════\r\n" +
-      "  MIS 15 AÑOS - DANNA | RECUERDO DE INVITADO\r\n" +
-      "═══════════════════════════════════════════════════════\r\n\r\n" +
-      "De: " + guestName + "\r\n" +
-      "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
-      "Último lote: " + photos.length + " archivo(s)\r\n" +
-      "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
-      "DEDICATORIA / MENSAJE:\r\n" +
-      (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
-      "═══════════════════════════════════════════════════════";
-    const dedicationFileName = "Dedicatoria_" + safeGuestName + ".txt";
-    const existingDedication = guestFolder.getFilesByName(dedicationFileName);
-    if (existingDedication.hasNext()) {
-      existingDedication.next().setContent(noteContent);
-    } else {
-      guestFolder.createFile(dedicationFileName, noteContent, "text/plain");
+      // A) Buscar por ID directo si fue enviado por la app
+      if (existingFolderId) {
+        try {
+          guestFolder = DriveApp.getFolderById(existingFolderId);
+        } catch (err) {
+          guestFolder = null;
+        }
+      }
+
+      // B) Buscar por deviceId en los metadatos de las carpetas existentes
+      if (!guestFolder && deviceId) {
+        const subfolders = mainFolder.getFolders();
+        while (subfolders.hasNext()) {
+          const sf = subfolders.next();
+          try {
+            const desc = sf.getDescription();
+            if (desc && desc.startsWith("{")) {
+              const parsed = JSON.parse(desc);
+              if (parsed.deviceId && parsed.deviceId === deviceId) {
+                guestFolder = sf;
+                break;
+              }
+            }
+          } catch (e2) { }
+        }
+      }
+
+      // C) Fallback: Buscar por nombre del invitado
+      if (!guestFolder && safeGuestName) {
+        const subfolders = mainFolder.getFolders();
+        while (subfolders.hasNext()) {
+          const sf = subfolders.next();
+          const sfName = sf.getName();
+          if (sfName.startsWith(safeGuestName + " (") || sfName.toLowerCase() === safeGuestName.toLowerCase()) {
+            guestFolder = sf;
+            break;
+          }
+        }
+      }
+
+      if (!guestFolder) {
+        const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "yyyy-MM-dd_HH-mm");
+        const guestFolderName = safeGuestName + " (" + dateStr + ")";
+        guestFolder = mainFolder.createFolder(guestFolderName);
+        guestFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        try {
+          guestFolder.setDescription(JSON.stringify({
+            guestName: guestName,
+            comment: comment,
+            deviceId: deviceId,
+            photos: [],
+            date: now.toISOString()
+          }));
+        } catch (descErr) { }
+      }
+    } finally {
+      if (folderLock) {
+        try { folderLock.releaseLock(); } catch (relErr) { }
+      }
     }
 
-    // 4. Guardar cada una de las fotos en Drive y subir al Álbum de Google Fotos
+    // 2. Guardar o actualizar la dedicatoria solo cuando corresponde (evita reescrituras por lote)
+    if (!skipDedication) {
+      const noteContent = "═══════════════════════════════════════════════════════\r\n" +
+        "  MIS 15 AÑOS - DANNA | RECUERDO DE INVITADO\r\n" +
+        "═══════════════════════════════════════════════════════\r\n\r\n" +
+        "De: " + guestName + "\r\n" +
+        "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
+        "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
+        "DEDICATORIA / MENSAJE:\r\n" +
+        (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
+        "═══════════════════════════════════════════════════════";
+      const dedicationFileName = "Dedicatoria_" + safeGuestName + ".txt";
+      const existingDedication = guestFolder.getFilesByName(dedicationFileName);
+      if (existingDedication.hasNext()) {
+        existingDedication.next().setContent(noteContent);
+      } else {
+        guestFolder.createFile(dedicationFileName, noteContent, "text/plain");
+      }
+    }
+
+    // 3. Guardar cada archivo en Drive y preparar tokens para batchCreate en Google Fotos
     const savedPhotos = [];
+    const savedCompact = [];
+    const pendingPhotosApiItems = [];
+    var googlePhotosToken = null;
+    try {
+      googlePhotosToken = ScriptApp.getOAuthToken();
+    } catch (tokErr) { }
+    var photosApiAvailable = Boolean(googlePhotosToken);
+
     for (var i = 0; i < photos.length; i++) {
       try {
         const item = photos[i];
         const base64Data = item.base64;
         const contentType = item.type || "image/jpeg";
-        const fileName = item.name || ("foto_" + (i + 1) + ".jpg");
+        const fileName = item.name || ("archivo_" + (i + 1) + ".jpg");
 
-        // Decodificar Base64
         const decodedBytes = Utilities.base64Decode(base64Data);
         const blob = Utilities.newBlob(decodedBytes, contentType, fileName);
 
-        // Guardar archivo en la subcarpeta del invitado en Drive
         const file = guestFolder.createFile(blob);
-        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        try {
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (shareErr) { }
 
         const fileId = file.getId();
-        const directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
         const viewUrl = file.getUrl();
 
-        // Intentar agregar al Álbum de Google Fotos directamente vía Google Photos API
-        var googlePhotosId = null;
-        try {
-          googlePhotosId = uploadDirectToGooglePhotos(blob, fileName, guestName, comment);
-        } catch (photosApiErr) {
-          Logger.log("Aviso Google Photos API: " + photosApiErr.toString());
+        if (photosApiAvailable) {
+          const uploadToken = uploadBytesToGooglePhotos_(googlePhotosToken, decodedBytes, fileName);
+          if (uploadToken === "__FORBIDDEN__") {
+            photosApiAvailable = false;
+          } else if (uploadToken) {
+            pendingPhotosApiItems.push({ fileName: fileName, uploadToken: uploadToken });
+          }
         }
 
-        savedPhotos.push({
-          name: fileName,
-          id: fileId,
-          appwriteUrl: item.appwriteUrl || null,
-          googlePhotosId: googlePhotosId,
-          url: item.appwriteUrl || directUrl,
-          viewUrl: viewUrl
-        });
-        Logger.log("  📸 Foto guardada (" + (i + 1) + "/" + photos.length + "): " + fileName + " (ID: " + fileId + ")");
+        savedPhotos.push(buildPhotoPayload_(fileId, fileName, viewUrl));
+        savedCompact.push({ name: fileName, id: fileId });
+        Logger.log("  📸 Archivo guardado (" + (i + 1) + "/" + photos.length + "): " + fileName + " (ID: " + fileId + ")");
       } catch (photoErr) {
-        Logger.log("Error guardando foto " + i + ": " + photoErr.toString());
+        Logger.log("Error guardando archivo " + i + ": " + photoErr.toString());
       }
     }
 
-    // Actualizar metadatos de la carpeta con fotos acumuladas y deviceId para lectura instantánea
-    var allPhotos = savedPhotos;
-    var finalComment = comment;
-    try {
-      const oldDesc = guestFolder.getDescription();
-      if (oldDesc && oldDesc.startsWith("{")) {
-        const oldParsed = JSON.parse(oldDesc);
-        if (oldParsed.photos && Array.isArray(oldParsed.photos) && oldParsed.photos.length > 0) {
-          const newNames = new Set(savedPhotos.map(function(p) { return p.name; }));
-          const prior = oldParsed.photos.filter(function(p) { return !newNames.has(p.name); });
-          allPhotos = prior.concat(savedPhotos);
-        }
-        if (!finalComment && oldParsed.comment) {
-          finalComment = oldParsed.comment;
-        }
+    // Registrar todo el lote en el álbum de Google Fotos en 1 sola llamada batchCreate
+    if (photosApiAvailable && pendingPhotosApiItems.length > 0) {
+      try {
+        batchCreateGooglePhotosMediaItems_(googlePhotosToken, pendingPhotosApiItems, guestName, comment);
+      } catch (batchErr) {
+        Logger.log("Aviso batchCreate Google Fotos: " + batchErr.toString());
       }
+    }
 
-      guestFolder.setDescription(JSON.stringify({
+    // 4. Sección corta con bloqueo para fusionar metadatos cacheados de la carpeta sin colisiones
+    var finalComment = comment;
+    var totalCount = savedCompact.length;
+    const metaLock = acquireScriptLock_(10000);
+    try {
+      var mergedCompact = savedCompact;
+      try {
+        const oldDesc = guestFolder.getDescription();
+        if (oldDesc && oldDesc.startsWith("{")) {
+          const oldParsed = JSON.parse(oldDesc);
+          if (oldParsed.photos && Array.isArray(oldParsed.photos) && oldParsed.photos.length > 0) {
+            const newNames = {};
+            for (var k = 0; k < savedCompact.length; k++) {
+              newNames[savedCompact[k].name] = true;
+            }
+            const prior = [];
+            for (var pIdx = 0; pIdx < oldParsed.photos.length; pIdx++) {
+              const oldItem = oldParsed.photos[pIdx];
+              const oldName = oldItem.name || oldItem.n || "";
+              const oldId = oldItem.id || "";
+              if (oldId && !newNames[oldName]) {
+                prior.push({ name: oldName, id: oldId });
+              }
+            }
+            mergedCompact = prior.concat(savedCompact);
+          }
+          if (!finalComment && oldParsed.comment) {
+            finalComment = oldParsed.comment;
+          }
+        }
+      } catch (readDescErr) { }
+
+      totalCount = mergedCompact.length;
+      const metaObj = {
         guestName: guestName,
         comment: finalComment,
         deviceId: deviceId,
-        photos: allPhotos,
+        photos: mergedCompact,
         date: now.toISOString()
-      }));
-    } catch (e) {
-      Logger.log("Aviso actualizando descripción: " + e.toString());
+      };
+      var metaJson = JSON.stringify(metaObj);
+      // Si la carpeta creciera tanto que supera ~28 KB, dejar que doGet lea los archivos directo
+      if (metaJson.length > 28000) {
+        metaObj.photos = [];
+        metaJson = JSON.stringify(metaObj);
+      }
+      guestFolder.setDescription(metaJson);
+    } catch (e3) {
+      Logger.log("Aviso actualizando descripción: " + e3.toString());
+    } finally {
+      if (metaLock) {
+        try { metaLock.releaseLock(); } catch (relErr2) { }
+      }
     }
 
-    Logger.log("✅ [doPost] Finalizado con éxito para " + guestName + ". Carpeta: " + guestFolder.getName() + " (Total fotos: " + allPhotos.length + ")");
+    Logger.log("✅ [doPost] Finalizado con éxito para " + guestName + ". Carpeta: " + guestFolder.getName() + " (Total archivos: " + totalCount + ")");
 
-    // 5. Retornar respuesta exitosa con la URL del álbum de Google Fotos
     return responseJSON({
       status: "success",
-      message: "Recuerdos guardados exitosamente en Google Fotos y Drive",
+      message: "Recuerdos guardados exitosamente en Google Drive y Google Fotos",
       guestName: guestName,
       comment: finalComment,
       googlePhotosAlbumId: GOOGLE_PHOTOS_ALBUM_ID,
@@ -213,8 +273,8 @@ function doPost(e) {
       folderId: guestFolder.getId(),
       folderUrl: guestFolder.getUrl(),
       folderName: guestFolder.getName(),
-      photosCount: allPhotos.length,
-      photos: allPhotos,
+      photosCount: totalCount,
+      photos: savedPhotos,
       timestamp: now.toISOString()
     });
 
@@ -227,66 +287,52 @@ function doPost(e) {
   }
 }
 
-/**
- * Sube la imagen a la API de Google Photos y la asigna al álbum de Danna
- */
-function uploadDirectToGooglePhotos(blob, fileName, guestName, comment) {
-  const token = ScriptApp.getOAuthToken();
-  if (!token) return null;
+function uploadBytesToGooglePhotos_(token, rawBytes, fileName) {
+  try {
+    const uploadResponse = UrlFetchApp.fetch("https://photoslibrary.googleapis.com/v1/uploads", {
+      method: "post",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-type": "application/octet-stream",
+        "X-Goog-Upload-File-Name": encodeURIComponent(fileName),
+        "X-Goog-Upload-Protocol": "raw"
+      },
+      payload: rawBytes,
+      muteHttpExceptions: true
+    });
+    const code = uploadResponse.getResponseCode();
+    if (code === 401 || code === 403) {
+      return "__FORBIDDEN__";
+    }
+    if (code === 200) {
+      return uploadResponse.getContentText();
+    }
+  } catch (e) { }
+  return null;
+}
 
-  // Paso A: Subir los bytes para obtener el uploadToken
-  const uploadUrl = "https://photoslibrary.googleapis.com/v1/uploads";
-  const uploadHeaders = {
-    "Authorization": "Bearer " + token,
-    "Content-type": "application/octet-stream",
-    "X-Goog-Upload-File-Name": encodeURIComponent(fileName),
-    "X-Goog-Upload-Protocol": "raw"
-  };
-
-  const uploadResponse = UrlFetchApp.fetch(uploadUrl, {
-    method: "post",
-    headers: uploadHeaders,
-    payload: blob.getBytes(),
-    muteHttpExceptions: true
-  });
-
-  if (uploadResponse.getResponseCode() !== 200) {
-    return null;
+function batchCreateGooglePhotosMediaItems_(token, items, guestName, comment) {
+  const newMediaItems = [];
+  for (var i = 0; i < items.length; i++) {
+    newMediaItems.push({
+      "description": "15 Años de Danna • De: " + guestName + (comment ? (" - " + comment) : ""),
+      "simpleMediaItem": {
+        "fileName": items[i].fileName,
+        "uploadToken": items[i].uploadToken
+      }
+    });
   }
 
-  const uploadToken = uploadResponse.getContentText();
-
-  // Paso B: Crear el MediaItem dentro del Álbum específico de Danna
-  const createUrl = "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate";
-  const createPayload = {
-    "albumId": GOOGLE_PHOTOS_ALBUM_ID,
-    "newMediaItems": [
-      {
-        "description": "15 Años de Danna • De: " + guestName + (comment ? (" - " + comment) : ""),
-        "simpleMediaItem": {
-          "fileName": fileName,
-          "uploadToken": uploadToken
-        }
-      }
-    ]
-  };
-
-  const createResponse = UrlFetchApp.fetch(createUrl, {
+  UrlFetchApp.fetch("https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate", {
     method: "post",
     contentType: "application/json",
     headers: { "Authorization": "Bearer " + token },
-    payload: JSON.stringify(createPayload),
+    payload: JSON.stringify({
+      "albumId": GOOGLE_PHOTOS_ALBUM_ID,
+      "newMediaItems": newMediaItems
+    }),
     muteHttpExceptions: true
   });
-
-  if (createResponse.getResponseCode() === 200) {
-    const res = JSON.parse(createResponse.getContentText());
-    if (res.newMediaItemResults && res.newMediaItemResults.length > 0) {
-      return res.newMediaItemResults[0].mediaItem ? res.newMediaItemResults[0].mediaItem.id : null;
-    }
-  }
-
-  return null;
 }
 
 /**
@@ -331,18 +377,29 @@ function doGet(e) {
             commentText = parsedDesc.comment || "";
             deviceIdText = parsedDesc.deviceId || "";
             if (parsedDesc.photos && Array.isArray(parsedDesc.photos) && parsedDesc.photos.length > 0) {
-              memories.push({
-                folderId: folder.getId(),
-                folderName: folder.getName(),
-                folderUrl: folder.getUrl(),
-                guestName: guestNameText,
-                comment: commentText,
-                deviceId: deviceIdText,
-                photosCount: parsedDesc.photos.length,
-                photos: parsedDesc.photos,
-                created: folder.getDateCreated().toISOString()
-              });
-              continue;
+              const normalizedPhotos = [];
+              for (var nIdx = 0; nIdx < parsedDesc.photos.length; nIdx++) {
+                const rawP = parsedDesc.photos[nIdx];
+                if (rawP && rawP.id) {
+                  normalizedPhotos.push(
+                    buildPhotoPayload_(rawP.id, rawP.name || rawP.n || ("archivo_" + (nIdx + 1) + ".jpg"), rawP.viewUrl)
+                  );
+                }
+              }
+              if (normalizedPhotos.length > 0) {
+                memories.push({
+                  folderId: folder.getId(),
+                  folderName: folder.getName(),
+                  folderUrl: folder.getUrl(),
+                  guestName: guestNameText,
+                  comment: commentText,
+                  deviceId: deviceIdText,
+                  photosCount: normalizedPhotos.length,
+                  photos: normalizedPhotos,
+                  created: folder.getDateCreated().toISOString()
+                });
+                continue;
+              }
             }
           }
         } catch (cacheErr) { }

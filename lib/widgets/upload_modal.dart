@@ -86,11 +86,17 @@ class _UploadModalState extends State<UploadModal> {
             continue;
           }
 
-          final bytes = await file.readAsBytes();
-          final size = (await file.length()) ?? bytes.length;
+          final isVideoExt = const {'mp4', 'm4v', 'mov', 'webm', 'avi', 'mkv'}.contains(ext);
+          final maxAllowed = isVideoExt ? (20 * 1024 * 1024) : (50 * 1024 * 1024);
+          final reportedSize = await file.length();
+          if (reportedSize != null && reportedSize > maxAllowed) {
+            skippedOversized++;
+            continue;
+          }
 
-          // Límite de 50MB por archivo para Appwrite Storage
-          if (size > 50 * 1024 * 1024) {
+          final rawBytes = await file.readAsBytes();
+          final rawSize = reportedSize ?? rawBytes.length;
+          if (rawSize > maxAllowed) {
             skippedOversized++;
             continue;
           }
@@ -105,14 +111,31 @@ class _UploadModalState extends State<UploadModal> {
           if (ext == 'avi') mime = 'video/x-msvideo';
           if (ext == 'mkv') mime = 'video/x-matroska';
 
-          _selectedFiles.add(
-            SelectedFile(
-              name: file.name,
-              bytes: bytes,
-              size: size,
+          if (isVideoExt) {
+            _selectedFiles.add(
+              SelectedFile(
+                name: file.name,
+                bytes: rawBytes,
+                size: rawSize,
+                mimeType: mime,
+              ),
+            );
+          } else {
+            // Comprimir y redimensionar fotos en el cliente antes de previsualizar y subir
+            final optimized = await DownloadHelper.optimizeImageForUpload(
+              bytes: rawBytes,
+              fileName: file.name,
               mimeType: mime,
-            ),
-          );
+            );
+            _selectedFiles.add(
+              SelectedFile(
+                name: optimized.fileName,
+                bytes: optimized.bytes,
+                size: optimized.bytes.length,
+                mimeType: optimized.mimeType,
+              ),
+            );
+          }
         }
 
         if (skippedOversized > 0 && mounted) {
@@ -120,7 +143,7 @@ class _UploadModalState extends State<UploadModal> {
             SnackBar(
               backgroundColor: AppTheme.dustyPink,
               content: Text(
-                'Se omitieron $skippedOversized archivo(s) que superan el límite de 50MB.',
+                'Se omitieron $skippedOversized archivo(s) demasiado pesados (videos máx. 20MB para respaldo seguro en Google Drive).',
                 style: GoogleFonts.poppins(color: Colors.white),
               ),
             ),
@@ -157,6 +180,7 @@ class _UploadModalState extends State<UploadModal> {
   }
 
   Future<void> _submit() async {
+    if (widget.storageService.isUploadingNotifier.value) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedFiles.isEmpty) {
@@ -551,7 +575,7 @@ class _UploadModalState extends State<UploadModal> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Fotos: JPG, PNG, WEBP, HEIC • Videos: MP4, MOV, WEBM (máx. 50MB)',
+                                          'Fotos: JPG, PNG, WEBP, HEIC • Videos: MP4, MOV, WEBM (máx. 20MB)',
                                           style: GoogleFonts.poppins(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,

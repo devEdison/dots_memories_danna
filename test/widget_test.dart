@@ -148,5 +148,20 @@ void main() {
       timestamp: DateTime(2026, 11, 10),
     );
     expect(smallItem.toJson()['base64Data'], isNotNull);
+
+    final drivePhoto = MemoryItem(
+      id: 'drive_abc123',
+      fileName: 'valenzuela.jpg',
+      remoteUrl: 'https://lh3.googleusercontent.com/d/drive_abc123',
+      timestamp: DateTime(2026, 11, 10),
+    );
+    expect(
+      (drivePhoto.thumbnailProvider as NetworkImage).url,
+      'https://lh3.googleusercontent.com/d/drive_abc123=w600',
+    );
+    expect(
+      (drivePhoto.imageProvider as NetworkImage).url,
+      'https://lh3.googleusercontent.com/d/drive_abc123=w1920',
+    );
   });
 }

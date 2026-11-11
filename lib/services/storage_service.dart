@@ -224,18 +224,43 @@ class StorageService {
     }
   }
 
-  /// Sube fotos y videos seleccionados por el invitado a Appwrite Storage y Google Drive
+  /// Optimiza y sube fotos y videos directamente a Google Drive y Google Fotos en lotes seguros
   Future<bool> uploadMemories({
     required String guestName,
     required String comment,
     required List<SelectedFile> files,
   }) async {
-    if (files.isEmpty) return false;
+    if (files.isEmpty || isUploadingNotifier.value) return false;
 
     isUploadingNotifier.value = true;
-    uploadProgressNotifier.value = 0.1;
-    final totalFiles = files.length;
-    final videoCount = files.where((f) => f.isVideo).length;
+    uploadProgressNotifier.value = 0.05;
+    uploadStatusNotifier.value = 'Optimizando archivos para envío rápido...';
+
+    final processedFiles = <SelectedFile>[];
+    for (int i = 0; i < files.length; i++) {
+      final f = files[i];
+      if (!f.isVideo && f.bytes.length > 320 * 1024) {
+        final optimized = await DownloadHelper.optimizeImageForUpload(
+          bytes: f.bytes,
+          fileName: f.name,
+          mimeType: f.mimeType,
+        );
+        processedFiles.add(
+          SelectedFile(
+            name: optimized.fileName,
+            bytes: optimized.bytes,
+            size: optimized.bytes.length,
+            mimeType: optimized.mimeType,
+          ),
+        );
+      } else {
+        processedFiles.add(f);
+      }
+      uploadProgressNotifier.value = 0.05 + ((i + 1) / files.length) * 0.10;
+    }
+
+    final totalFiles = processedFiles.length;
+    final videoCount = processedFiles.where((f) => f.isVideo).length;
     final photoCount = totalFiles - videoCount;
 
     String typeSummary = '$photoCount fotos';
@@ -243,7 +268,7 @@ class StorageService {
       typeSummary = photoCount > 0 ? '$photoCount fotos y $videoCount videos' : '$videoCount videos';
     }
 
-    uploadStatusNotifier.value = 'Procesando $typeSummary...';
+    uploadStatusNotifier.value = 'Preparando $typeSummary para Google Drive...';
 
     final now = DateTime.now();
 
@@ -257,67 +282,168 @@ class StorageService {
         ? comment.trim()
         : (existingFolder?.comment ?? '');
 
-    // Codificar Base64 una sola vez por archivo para reducir uso de memoria y CPU
-    final encodedBase64 = <String?>[];
-    for (final f in files) {
-      encodedBase64.add(f.isVideo && f.size > 24 * 1024 * 1024 ? null : base64Encode(f.bytes));
-    }
-
-    // 1. Subir a Appwrite Storage en lotes concurrentes (máx. 3 en paralelo)
     final currentConfig = configNotifier.value;
-    uploadStatusNotifier.value = 'Subiendo a Appwrite Storage CDN...';
-    uploadProgressNotifier.value = 0.15;
-
-    final appwritePhotoUrls = List<String?>.filled(files.length, null);
-    int completedAppwrite = 0;
-    const maxConcurrency = 3;
-
-    Future<void> uploadSingleToAppwrite(int index) async {
-      final f = files[index];
-      try {
-        final uploadUri = Uri.parse(
-          '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files',
-        );
-        final request = http.MultipartRequest('POST', uploadUri)
-          ..headers['X-Appwrite-Project'] = currentConfig.appwriteProjectId
-          ..fields['fileId'] = 'unique()'
-          ..files.add(http.MultipartFile.fromBytes('file', f.bytes, filename: f.name));
-        final streamed = await _httpClient.send(request).timeout(const Duration(seconds: 45));
-        final body = await streamed.stream.bytesToString();
-        if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
-          final resJson = jsonDecode(body) as Map<String, dynamic>;
-          final fId = resJson[r'$id'] as String;
-          appwritePhotoUrls[index] =
-              '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files/$fId/view?project=${currentConfig.appwriteProjectId}';
-        }
-      } catch (e) {
-        debugPrint('Aviso subida Appwrite Storage: $e');
-      } finally {
-        completedAppwrite++;
-        uploadProgressNotifier.value = 0.15 + (completedAppwrite / files.length) * 0.35;
+    String? googleFolderUrl = existingFolder?.folderUrl;
+    String? targetGoogleFolderId = existingFolder?.googleFolderId;
+    if (targetGoogleFolderId == null || targetGoogleFolderId.isEmpty) {
+      if (existingFolder != null && !existingFolder.id.startsWith('folder_')) {
+        targetGoogleFolderId = existingFolder.id;
       }
     }
 
-    for (int start = 0; start < files.length; start += maxConcurrency) {
-      final end = (start + maxConcurrency) < files.length ? (start + maxConcurrency) : files.length;
-      await Future.wait([
-        for (int idx = start; idx < end; idx++) uploadSingleToAppwrite(idx),
-      ]);
+    final remoteUrlByFileIndex = <int, String>{};
+    bool googleSuccess = false;
+
+    // Subir por lotes adaptativos directamente a Google Apps Script / Drive
+    if (currentConfig.useGoogleBackend &&
+        currentConfig.googleScriptUrl.trim().isNotEmpty) {
+      try {
+        // Tamaño exacto Base64 calculado sin asignar cadenas en memoria por adelantado
+        int estimatedBase64Len(int byteLen) => ((byteLen + 2) ~/ 3) * 4;
+
+        // Lotes compactos (~4 MB Base64 o máx. 4 archivos) para evitar saturar Apps Script
+        final chunks = <List<int>>[];
+        var currentChunk = <int>[];
+        var currentChunkBase64Chars = 0;
+        const maxChunkBase64Chars = 4 * 1024 * 1024;
+        const maxFilesPerChunk = 4;
+
+        for (int i = 0; i < processedFiles.length; i++) {
+          final b64Len = estimatedBase64Len(processedFiles[i].bytes.length);
+          if (currentChunk.isNotEmpty &&
+              (currentChunkBase64Chars + b64Len > maxChunkBase64Chars ||
+                  currentChunk.length >= maxFilesPerChunk)) {
+            chunks.add(currentChunk);
+            currentChunk = <int>[];
+            currentChunkBase64Chars = 0;
+          }
+          currentChunk.add(i);
+          currentChunkBase64Chars += b64Len;
+        }
+        if (currentChunk.isNotEmpty) {
+          chunks.add(currentChunk);
+        }
+
+        final scriptUri = Uri.parse(currentConfig.googleScriptUrl.trim());
+
+        for (int cIdx = 0; cIdx < chunks.length; cIdx++) {
+          if (cIdx > 0) {
+            // Breve pausa entre lotes para no saturar cuotas simultáneas de Drive/Apps Script
+            await Future.delayed(const Duration(milliseconds: 300));
+          }
+
+          final chunkIndices = chunks[cIdx];
+          final photosPayload = <Map<String, dynamic>>[
+            for (final i in chunkIndices)
+              {
+                'name': processedFiles[i].name,
+                'type': processedFiles[i].mimeType,
+                'base64': base64Encode(processedFiles[i].bytes),
+              },
+          ];
+
+          final payload = jsonEncode({
+            'guestName': targetGuestName,
+            'comment': targetComment,
+            'deviceId': deviceId,
+            'folderId': targetGoogleFolderId,
+            'skipDedication': cIdx > 0,
+            'photos': photosPayload,
+          });
+
+          uploadProgressNotifier.value = 0.18 + ((cIdx + 0.5) / chunks.length) * 0.74;
+          uploadStatusNotifier.value = chunks.length > 1
+              ? 'Subiendo lote ${cIdx + 1} de ${chunks.length} a Google Drive...'
+              : 'Guardando dedicatoria y archivos en Google Drive...';
+
+          const maxAttempts = 3;
+          for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              final response = await _httpClient
+                  .post(
+                    scriptUri,
+                    body: payload,
+                    headers: {'Content-Type': 'text/plain'},
+                  )
+                  .timeout(const Duration(seconds: 60));
+
+              if (response.statusCode >= 200 && response.statusCode < 300) {
+                final resJson = jsonDecode(response.body) as Map<String, dynamic>;
+                if (resJson['status'] == 'success') {
+                  googleSuccess = true;
+                  googleFolderUrl = (resJson['folderUrl'] as String?) ?? googleFolderUrl;
+                  targetGoogleFolderId = (resJson['folderId'] as String?) ?? targetGoogleFolderId;
+                  final remotePhotos = resJson['photos'] as List<dynamic>?;
+                  if (remotePhotos != null) {
+                    for (final i in chunkIndices) {
+                      final f = processedFiles[i];
+                      Map<String, dynamic>? match;
+                      for (final rp in remotePhotos) {
+                        if (rp is Map<String, dynamic> && rp['name'] == f.name) {
+                          match = rp;
+                          break;
+                        }
+                      }
+                      final driveId = match?['id'] as String?;
+                      final urlStr = match?['url'] as String?;
+                      final resolvedDriveUrl =
+                          (urlStr != null && urlStr.isNotEmpty && !urlStr.contains('appwrite.io'))
+                              ? urlStr
+                              : (driveId != null && driveId.isNotEmpty
+                                  ? 'https://lh3.googleusercontent.com/d/$driveId'
+                                  : null);
+                      if (resolvedDriveUrl != null) {
+                        remoteUrlByFileIndex[i] = resolvedDriveUrl;
+                      }
+                    }
+                  }
+                  break;
+                }
+              }
+
+              final retryableStatus = response.statusCode == 429 || response.statusCode >= 500;
+              if (!retryableStatus && attempt == maxAttempts) {
+                break;
+              }
+            } catch (e) {
+              debugPrint('Aviso lote ${cIdx + 1} intento $attempt hacia Google Drive: $e');
+            }
+
+            if (attempt < maxAttempts) {
+              await Future.delayed(Duration(milliseconds: 1500 * attempt));
+            }
+          }
+        }
+
+        if (googleSuccess) {
+          uploadStatusNotifier.value = '¡Guardado con éxito en Google Drive!';
+        } else {
+          uploadStatusNotifier.value = 'Guardado localmente (pendiente de sincronizar)';
+        }
+      } catch (e) {
+        debugPrint('Error enviando a Google Apps Script: $e');
+        uploadStatusNotifier.value = 'Guardado localmente (pendiente de sincronizar)';
+      }
+    } else {
+      uploadProgressNotifier.value = 0.85;
+      uploadStatusNotifier.value = 'Guardando en galería...';
     }
 
-    // Crear elementos de memoria para visualización inmediata (con URL de CDN lista)
-    final localPhotoItems = <MemoryItem>[];
+    // Construir elementos finales priorizando la URL de Google Drive
+    final uploadedItems = <MemoryItem>[];
     final startIndex = existingFolder?.photos.length ?? 0;
-    for (int i = 0; i < files.length; i++) {
-      final f = files[i];
-      final aUrl = appwritePhotoUrls[i];
-      localPhotoItems.add(
+    for (int i = 0; i < processedFiles.length; i++) {
+      final f = processedFiles[i];
+      final resolvedUrl = remoteUrlByFileIndex[i];
+      uploadedItems.add(
         MemoryItem(
           id: '${folderId}_media_${startIndex + i}',
           fileName: f.name,
           bytes: f.bytes,
-          remoteUrl: aUrl,
-          base64Data: (aUrl != null || f.isVideo) ? null : encodedBase64[i],
+          remoteUrl: resolvedUrl,
+          base64Data: (resolvedUrl != null || f.isVideo || f.bytes.length > 262144)
+              ? null
+              : base64Encode(f.bytes),
           timestamp: now,
           fileSize: f.size,
           mimeType: f.mimeType,
@@ -325,166 +451,28 @@ class StorageService {
       );
     }
 
-    var activeFolder = existingFolder != null
+    final activeFolder = existingFolder != null
         ? existingFolder.copyWith(
             guestName: targetGuestName,
             comment: targetComment,
-            photos: [...existingFolder.photos, ...localPhotoItems],
+            folderUrl: googleFolderUrl ?? existingFolder.folderUrl,
+            googleFolderId: targetGoogleFolderId ?? existingFolder.googleFolderId,
+            photos: [...existingFolder.photos, ...uploadedItems],
             timestamp: now,
             deviceId: deviceId,
+            isSyncedToGoogle: googleSuccess || existingFolder.isSyncedToGoogle,
           )
         : MemoryFolder(
             id: folderId,
             guestName: targetGuestName,
             comment: targetComment,
+            folderUrl: googleFolderUrl,
+            googleFolderId: targetGoogleFolderId,
             timestamp: now,
-            photos: localPhotoItems,
+            photos: uploadedItems,
             deviceId: deviceId,
-            isSyncedToGoogle: false,
+            isSyncedToGoogle: googleSuccess,
           );
-
-    // 2. Intentar subida y respaldo a Google Apps Script / Google Drive si está configurado
-    if (currentConfig.useGoogleBackend &&
-        currentConfig.googleScriptUrl.trim().isNotEmpty) {
-      uploadStatusNotifier.value = 'Respaldando en Google Fotos / Drive...';
-      uploadProgressNotifier.value = 0.55;
-
-      try {
-        String? targetGoogleFolderId = existingFolder?.googleFolderId;
-        if (targetGoogleFolderId == null || targetGoogleFolderId.isEmpty) {
-          if (existingFolder != null && !existingFolder.id.startsWith('folder_')) {
-            targetGoogleFolderId = existingFolder.id;
-          }
-        }
-
-        // Dividir en lotes seguros si el payload base64 supera ~14 MB para evitar timeouts de Apps Script
-        final chunks = <List<int>>[];
-        var currentChunk = <int>[];
-        var currentChunkBytes = 0;
-        const maxChunkBase64Chars = 14 * 1024 * 1024;
-
-        for (int i = 0; i < files.length; i++) {
-          final b64Len = encodedBase64[i]?.length ?? 0;
-          if (currentChunk.isNotEmpty &&
-              (currentChunkBytes + b64Len > maxChunkBase64Chars || currentChunk.length >= 4)) {
-            chunks.add(currentChunk);
-            currentChunk = <int>[];
-            currentChunkBytes = 0;
-          }
-          currentChunk.add(i);
-          currentChunkBytes += b64Len;
-        }
-        if (currentChunk.isNotEmpty) {
-          chunks.add(currentChunk);
-        }
-
-        String? googleFolderUrl = existingFolder?.folderUrl;
-        final remoteUrlByFileIndex = <int, String?>{};
-        bool googleSuccess = false;
-
-        for (int cIdx = 0; cIdx < chunks.length; cIdx++) {
-          final chunkIndices = chunks[cIdx];
-          final photosPayload = <Map<String, dynamic>>[];
-          for (final i in chunkIndices) {
-            final f = files[i];
-            photosPayload.add({
-              'name': f.name,
-              'type': f.mimeType,
-              'base64': encodedBase64[i] ?? base64Encode(f.bytes),
-              'appwriteUrl': appwritePhotoUrls[i],
-            });
-          }
-
-          final payload = jsonEncode({
-            'guestName': targetGuestName,
-            'comment': targetComment,
-            'deviceId': deviceId,
-            'folderId': targetGoogleFolderId,
-            'photos': photosPayload,
-          });
-
-          uploadProgressNotifier.value = 0.58 + ((cIdx + 0.5) / chunks.length) * 0.34;
-          uploadStatusNotifier.value = chunks.length > 1
-              ? 'Respaldando lote ${cIdx + 1} de ${chunks.length} en Drive...'
-              : 'Guardando dedicatoria y archivos en tu carpeta...';
-
-          final response = await _httpClient
-              .post(
-                Uri.parse(currentConfig.googleScriptUrl.trim()),
-                body: payload,
-                headers: {'Content-Type': 'text/plain'},
-              )
-              .timeout(const Duration(seconds: 55));
-
-          if (response.statusCode >= 200 && response.statusCode < 300) {
-            try {
-              final resJson = jsonDecode(response.body) as Map<String, dynamic>;
-              if (resJson['status'] == 'success') {
-                googleSuccess = true;
-                googleFolderUrl = (resJson['folderUrl'] as String?) ?? googleFolderUrl;
-                targetGoogleFolderId = (resJson['folderId'] as String?) ?? targetGoogleFolderId;
-                final remotePhotos = resJson['photos'] as List<dynamic>?;
-                    if (remotePhotos != null) {
-                  for (final i in chunkIndices) {
-                    final f = files[i];
-                    Map<String, dynamic>? match;
-                    for (final rp in remotePhotos) {
-                      if (rp is Map<String, dynamic> && rp['name'] == f.name) {
-                        match = rp;
-                        break;
-                      }
-                    }
-                    if (match != null && match['url'] is String) {
-                      remoteUrlByFileIndex[i] = match['url'] as String;
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              debugPrint('Aviso al interpretar respuesta de Google: $e');
-            }
-          }
-        }
-
-        if (googleSuccess) {
-          final updatedNewPhotos = <MemoryItem>[];
-          for (int i = 0; i < localPhotoItems.length; i++) {
-            final resolvedUrl = appwritePhotoUrls[i] ?? remoteUrlByFileIndex[i];
-            updatedNewPhotos.add(
-              MemoryItem(
-                id: localPhotoItems[i].id,
-                fileName: localPhotoItems[i].fileName,
-                bytes: localPhotoItems[i].bytes,
-                remoteUrl: resolvedUrl,
-                base64Data: resolvedUrl != null ? null : localPhotoItems[i].base64Data,
-                timestamp: localPhotoItems[i].timestamp,
-                fileSize: localPhotoItems[i].fileSize,
-                mimeType: localPhotoItems[i].mimeType,
-              ),
-            );
-          }
-
-          final finalPhotos = existingFolder != null
-              ? [...existingFolder.photos, ...updatedNewPhotos]
-              : updatedNewPhotos;
-
-          activeFolder = activeFolder.copyWith(
-            folderUrl: googleFolderUrl ?? existingFolder?.folderUrl,
-            googleFolderId: targetGoogleFolderId ?? existingFolder?.googleFolderId,
-            photos: finalPhotos,
-            deviceId: deviceId,
-            isSyncedToGoogle: true,
-          );
-          uploadStatusNotifier.value = '¡Guardado con éxito en tu carpeta!';
-        }
-      } catch (e) {
-        debugPrint('Error enviando a Google Apps Script: $e');
-        uploadStatusNotifier.value = 'Guardado en Appwrite Nube';
-      }
-    } else {
-      uploadProgressNotifier.value = 0.85;
-      uploadStatusNotifier.value = 'Guardando en galería...';
-    }
 
     uploadProgressNotifier.value = 1.0;
 
@@ -648,19 +636,11 @@ class StorageService {
               final pId = p['id'] as String? ?? '${folderMap['folderId']}_photo_$i';
               final pName = p['name'] as String? ?? 'archivo_${i + 1}.jpg';
 
-              // Priorizar URL de Appwrite Storage CDN para evitar error 429 de Google Drive
-              String pUrl = p['appwriteUrl'] as String? ?? '';
-              if (pUrl.isEmpty) {
-                if (pId == '1suOg92VkiELFrKpO5LTu2W4O-dxeu8Q8') {
-                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23d8f369a3dc77748/view?project=danna15-memories';
-                } else if (pId == '1B8duLCsx0DqsHM5y9m58Ze0eT2C7T5Ad') {
-                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af23def35cad9eacb10/view?project=danna15-memories';
-                } else if (pId == '1raLOylF7hTxeFctlTiUatPvFnSzIObFP' || pName.contains('Captura de pantalla 2026-10-28')) {
-                  pUrl = 'https://fra.cloud.appwrite.io/v1/storage/buckets/photos/files/6af2439cb4ad0a6a4dc6/view?project=danna15-memories';
-                } else {
-                  pUrl = p['url'] as String? ?? 'https://lh3.googleusercontent.com/d/$pId';
-                }
-              }
+              // Resolver exclusivamente la URL de Google Drive (ignorando URLs antiguas de Appwrite)
+              final rawUrl = (p['url'] as String? ?? '').trim();
+              final pUrl = (rawUrl.isNotEmpty && !rawUrl.contains('appwrite.io'))
+                  ? rawUrl
+                  : 'https://lh3.googleusercontent.com/d/$pId';
 
               final lowerName = pName.toLowerCase();
               final isVid = lowerName.endsWith('.mp4') ||

@@ -56,7 +56,18 @@ class MemoryItem {
     return null;
   }
 
-  /// Retorna y cachea un ImageProvider en resolución completa para lightbox y proyector
+  static final RegExp _driveLh3BasePattern = RegExp(
+    r'^https://lh3\.googleusercontent\.com/d/[^=/?#]+$',
+  );
+
+  static String _sizedRemoteUrl(String url, String sizeSuffix) {
+    if (_driveLh3BasePattern.hasMatch(url)) {
+      return '$url=$sizeSuffix';
+    }
+    return url;
+  }
+
+  /// Retorna y cachea un ImageProvider en resolución optimizada para lightbox y proyector
   ImageProvider get imageProvider {
     if (_cachedImageProvider != null) return _cachedImageProvider!;
     final localBytes = _resolveLocalBytes();
@@ -64,7 +75,7 @@ class MemoryItem {
       _cachedImageProvider = MemoryImage(localBytes);
     } else if (remoteUrl != null && remoteUrl!.isNotEmpty) {
       _cachedImageProvider = NetworkImage(
-        remoteUrl!,
+        _sizedRemoteUrl(remoteUrl!, 'w1920'),
         webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
       );
     } else {
@@ -73,7 +84,7 @@ class MemoryItem {
     return _cachedImageProvider!;
   }
 
-  /// Retorna y cachea una versión optimizada para miniaturas (evita decodificar buffers 4K en grids)
+  /// Retorna y cachea una versión ligera para miniaturas (evita saturar Drive y decodificar 4K)
   ImageProvider get thumbnailProvider {
     if (_cachedThumbnailProvider != null) return _cachedThumbnailProvider!;
     final localBytes = _resolveLocalBytes();
@@ -83,6 +94,14 @@ class MemoryItem {
         null,
         MemoryImage(localBytes),
       );
+    } else if (remoteUrl != null && remoteUrl!.isNotEmpty) {
+      final thumbUrl = _sizedRemoteUrl(remoteUrl!, 'w600');
+      _cachedThumbnailProvider = thumbUrl == _sizedRemoteUrl(remoteUrl!, 'w1920')
+          ? imageProvider
+          : NetworkImage(
+              thumbUrl,
+              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+            );
     } else {
       _cachedThumbnailProvider = imageProvider;
     }
