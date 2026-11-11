@@ -149,10 +149,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openSlideshow(List<MemoryFolder> folders) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      useSafeArea: false,
-      builder: (context) => LiveSlideshowDialog(folders: folders),
+      barrierDismissible: false,
+      barrierColor: const Color(0xFF0A110C),
+      transitionDuration: const Duration(milliseconds: 450),
+      pageBuilder: (context, animation, secondaryAnimation) => LiveSlideshowDialog(
+        folders: folders,
+        storageService: widget.storageService,
+      ),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          child: child,
+        );
+      },
     );
   }
 

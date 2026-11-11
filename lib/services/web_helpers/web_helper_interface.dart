@@ -11,4 +11,6 @@ abstract class WebHelper {
   String getCurrentUrl();
   String? getQueryParam(String paramName);
   String buildAccessUrl(String accessKey);
+  bool get isFullscreen;
+  Future<void> toggleFullscreen();
 }

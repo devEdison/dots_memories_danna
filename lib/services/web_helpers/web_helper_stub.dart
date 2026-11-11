@@ -31,6 +31,14 @@ class WebHelperImpl extends WebHelper {
   String buildAccessUrl(String accessKey) {
     return 'https://dotsmemories.danna15.com/?key=$accessKey';
   }
+
+  @override
+  bool get isFullscreen => false;
+
+  @override
+  Future<void> toggleFullscreen() async {
+    debugPrint('[Stub] Toggle fullscreen');
+  }
 }
 
 WebHelper getWebHelper() => WebHelperImpl();

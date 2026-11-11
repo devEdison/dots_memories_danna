@@ -199,10 +199,11 @@ class EventHeader extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             _buildIconButton(
-                              icon: Icons.slideshow_rounded,
-                              label: isCompact ? null : 'Proyector',
-                              tooltip: 'Pase de diapositivas en vivo',
+                              icon: Icons.auto_awesome_rounded,
+                              label: isCompact ? null : 'Proyección',
+                              tooltip: 'Abrir Proyección de Gala en Pantalla Grande (TV / Proyector)',
                               onTap: onSlideshowPressed,
+                              highlightGold: true,
                             ),
                             const SizedBox(width: 8),
                             _buildIconButton(
@@ -502,14 +503,22 @@ class EventHeader extends StatelessWidget {
     String? label,
     required String tooltip,
     VoidCallback? onTap,
+    bool highlightGold = false,
   }) {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        elevation: 2,
-        shadowColor: Colors.black.withAlpha(20),
+        color: highlightGold ? const Color(0xFFFFFCF3) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: highlightGold
+              ? const BorderSide(color: AppTheme.goldBorder, width: 1.4)
+              : BorderSide.none,
+        ),
+        elevation: highlightGold ? 3 : 2,
+        shadowColor: highlightGold
+            ? AppTheme.warmGold.withAlpha(65)
+            : Colors.black.withAlpha(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
@@ -518,7 +527,11 @@ class EventHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 18, color: AppTheme.sageGreen),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: highlightGold ? AppTheme.goldDeep : AppTheme.sageGreen,
+                ),
                 if (label != null) ...[
                   const SizedBox(width: 6),
                   Text(
@@ -526,7 +539,7 @@ class EventHeader extends StatelessWidget {
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.charcoal,
+                      color: highlightGold ? AppTheme.sageDeep : AppTheme.charcoal,
                     ),
                   ),
                 ],

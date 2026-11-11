@@ -68,6 +68,31 @@ class WebHelperImpl extends WebHelper {
       return 'https://dotsmemories.danna15.com/?key=$accessKey';
     }
   }
+
+  @override
+  bool get isFullscreen {
+    try {
+      return web.document.fullscreenElement != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> toggleFullscreen() async {
+    try {
+      if (web.document.fullscreenElement != null) {
+        await web.document.exitFullscreen().toDart;
+      } else {
+        final root = web.document.documentElement;
+        if (root != null) {
+          await root.requestFullscreen().toDart;
+        }
+      }
+    } catch (e) {
+      debugPrint('Fullscreen no disponible: $e');
+    }
+  }
 }
 
 WebHelper getWebHelper() => WebHelperImpl();

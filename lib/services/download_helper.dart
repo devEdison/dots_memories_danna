@@ -29,4 +29,10 @@ class DownloadHelper {
   static String buildAccessUrl(String accessKey) {
     return webHelper.buildAccessUrl(accessKey);
   }
+
+  static bool get isFullscreen => webHelper.isFullscreen;
+
+  static Future<void> toggleFullscreen() {
+    return webHelper.toggleFullscreen();
+  }
 }
