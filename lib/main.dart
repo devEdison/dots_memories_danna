@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -260,6 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return Scaffold(
               body: CustomScrollView(
+                scrollCacheExtent: const ScrollCacheExtent.pixels(600),
                 slivers: [
                   // BARRA SUPERIOR DE ANFITRIÓN AUTENTICADO CON APPWRITE
                   SliverToBoxAdapter(
@@ -631,52 +633,51 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     else
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 16 : 36,
-                          vertical: 12,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1200),
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final width = constraints.maxWidth;
-                                  int crossAxisCount = 3;
-                                  if (width < 600) {
-                                    crossAxisCount = 1;
-                                  } else if (width < 960) {
-                                    crossAxisCount = 2;
-                                  }
+                      SliverLayoutBuilder(
+                        builder: (context, constraints) {
+                          final totalWidth = constraints.crossAxisExtent;
+                          final minSidePadding = isMobile ? 16.0 : 36.0;
+                          final contentWidth = (totalWidth - minSidePadding * 2).clamp(0.0, 1200.0);
+                          final horizontalPadding = (totalWidth - contentWidth) / 2;
 
-                                  return GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: filteredFolders.length,
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: crossAxisCount,
-                                      crossAxisSpacing: 20,
-                                      mainAxisSpacing: 20,
-                                      childAspectRatio: 0.82,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final folder = filteredFolders[index];
-                                      return FolderCard(
-                                        folder: folder,
-                                        onOpen: () => _openFolderDetail(folder),
-                                        onLike: () => widget.storageService.toggleLike(folder.id),
-                                      )
-                                          .animate(delay: ((index % 6) * 55).ms)
-                                          .fadeIn(duration: 380.ms)
-                                          .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0));
-                                    },
-                                  );
+                          int crossAxisCount = 3;
+                          if (contentWidth < 600) {
+                            crossAxisCount = 1;
+                          } else if (contentWidth < 960) {
+                            crossAxisCount = 2;
+                          }
+
+                          return SliverPadding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                              vertical: 12,
+                            ),
+                            sliver: SliverGrid(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 20,
+                                mainAxisSpacing: 20,
+                                childAspectRatio: 0.82,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final folder = filteredFolders[index];
+                                  return FolderCard(
+                                    key: ValueKey<String>(folder.id),
+                                    folder: folder,
+                                    onOpen: () => _openFolderDetail(folder),
+                                    onLike: () => widget.storageService.toggleLike(folder.id),
+                                  )
+                                      .animate(delay: ((index % 6) * 55).ms)
+                                      .fadeIn(duration: 380.ms)
+                                      .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0));
                                 },
+                                childCount: filteredFolders.length,
+                                addAutomaticKeepAlives: false,
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
 
@@ -702,152 +703,154 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     else
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 16 : 36,
-                          vertical: 12,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1200),
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final width = constraints.maxWidth;
-                                  int crossAxisCount = 4;
-                                  if (width < 480) {
-                                    crossAxisCount = 2;
-                                  } else if (width < 768) {
-                                    crossAxisCount = 3;
-                                  } else if (width < 1100) {
-                                    crossAxisCount = 4;
-                                  } else {
-                                    crossAxisCount = 5;
-                                  }
+                      SliverLayoutBuilder(
+                        builder: (context, constraints) {
+                          final totalWidth = constraints.crossAxisExtent;
+                          final minSidePadding = isMobile ? 16.0 : 36.0;
+                          final contentWidth = (totalWidth - minSidePadding * 2).clamp(0.0, 1200.0);
+                          final horizontalPadding = (totalWidth - contentWidth) / 2;
 
-                                  final allPhotos = filteredWall.map((e) => e.photo).toList();
+                          int crossAxisCount = 4;
+                          if (contentWidth < 480) {
+                            crossAxisCount = 2;
+                          } else if (contentWidth < 768) {
+                            crossAxisCount = 3;
+                          } else if (contentWidth < 1100) {
+                            crossAxisCount = 4;
+                          } else {
+                            crossAxisCount = 5;
+                          }
 
-                                  return GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: filteredWall.length,
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: crossAxisCount,
-                                      crossAxisSpacing: 14,
-                                      mainAxisSpacing: 14,
-                                      childAspectRatio: 0.95,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final item = filteredWall[index];
-                                      return MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: () => _openLightbox(allPhotos, index, item.folder),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(18),
-                                              border: Border.all(color: AppTheme.goldBorder, width: 1.3),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: AppTheme.sageGreen.withAlpha(24),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 3),
-                                                ),
-                                              ],
-                                            ),
-                                            clipBehavior: Clip.antiAlias,
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                item.photo.isVideo
-                                                    ? Container(
-                                                        color: const Color(0xFF1E2621),
-                                                        child: const Center(
-                                                          child: Column(
-                                                            mainAxisAlignment: MainAxisAlignment.center,
-                                                            children: [
-                                                              Icon(Icons.play_circle_fill, color: Colors.white, size: 38),
-                                                              SizedBox(height: 4),
-                                                              Text(
-                                                                'VIDEO',
-                                                                style: TextStyle(
-                                                                  color: Colors.white70,
-                                                                  fontSize: 10,
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
+                          final allPhotos = [for (final e in filteredWall) e.photo];
+
+                          return SliverPadding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                              vertical: 12,
+                            ),
+                            sliver: SliverGrid(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.95,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final item = filteredWall[index];
+                                  return RepaintBoundary(
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: GestureDetector(
+                                        onTap: () => _openLightbox(allPhotos, index, item.folder),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(18),
+                                            border: Border.all(color: AppTheme.goldBorder, width: 1.3),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppTheme.sageGreen.withAlpha(24),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              item.photo.isVideo
+                                                  ? Container(
+                                                      color: const Color(0xFF1E2621),
+                                                      child: const Center(
+                                                        child: Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            Icon(Icons.play_circle_fill, color: Colors.white, size: 38),
+                                                            SizedBox(height: 4),
+                                                            Text(
+                                                              'VIDEO',
+                                                              style: TextStyle(
+                                                                color: Colors.white70,
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.bold,
                                                               ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      )
-                                                    : Image(
-                                                        image: item.photo.imageProvider,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context, error, stackTrace) {
-                                                          return Container(
-                                                            color: AppTheme.softPinkBg,
-                                                            child: const Center(
-                                                              child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
                                                             ),
-                                                          );
-                                                        },
+                                                          ],
+                                                        ),
                                                       ),
-                                                Positioned(
-                                                  bottom: 0,
-                                                  left: 0,
-                                                  right: 0,
-                                                  child: Container(
-                                                    padding: const EdgeInsets.all(10),
-                                                    decoration: const BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        begin: Alignment.bottomCenter,
-                                                        end: Alignment.topCenter,
-                                                        colors: [Colors.black87, Colors.transparent],
-                                                      ),
+                                                    )
+                                                  : Image(
+                                                      image: item.photo.thumbnailProvider,
+                                                      fit: BoxFit.cover,
+                                                      gaplessPlayback: true,
+                                                      filterQuality: FilterQuality.medium,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Container(
+                                                          color: AppTheme.softPinkBg,
+                                                          child: const Center(
+                                                            child: Icon(Icons.photo_outlined, color: AppTheme.dustyPink, size: 36),
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
+                                              Positioned(
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: const BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      begin: Alignment.bottomCenter,
+                                                      end: Alignment.topCenter,
+                                                      colors: [Colors.black87, Colors.transparent],
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        item.folder.guestName,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: GoogleFonts.poppins(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                      if (item.folder.comment.isNotEmpty)
                                                         Text(
-                                                          item.folder.guestName,
+                                                          item.folder.comment,
                                                           maxLines: 1,
                                                           overflow: TextOverflow.ellipsis,
                                                           style: GoogleFonts.poppins(
-                                                            color: Colors.white,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize: 12,
+                                                            color: Colors.white70,
+                                                            fontSize: 10,
                                                           ),
                                                         ),
-                                                        if (item.folder.comment.isNotEmpty)
-                                                          Text(
-                                                            item.folder.comment,
-                                                            maxLines: 1,
-                                                            overflow: TextOverflow.ellipsis,
-                                                            style: GoogleFonts.poppins(
-                                                              color: Colors.white70,
-                                                              fontSize: 10,
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
+                                                    ],
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          )
-                                              .animate(delay: ((index % 10) * 35).ms)
-                                              .fadeIn(duration: 340.ms)
-                                              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.0, 1.0)),
-                                        ),
-                                      );
-                                    },
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                            .animate(delay: ((index % 10) * 35).ms)
+                                            .fadeIn(duration: 340.ms)
+                                            .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.0, 1.0)),
+                                      ),
+                                    ),
                                   );
                                 },
+                                childCount: filteredWall.length,
+                                addAutomaticKeepAlives: false,
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
 

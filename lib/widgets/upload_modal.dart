@@ -630,7 +630,10 @@ class _UploadModalState extends State<UploadModal> {
                                                     )
                                                   : Image.memory(
                                                       file.bytes,
+                                                      cacheWidth: 240,
                                                       fit: BoxFit.cover,
+                                                      gaplessPlayback: true,
+                                                      filterQuality: FilterQuality.medium,
                                                       errorBuilder: (ctx, err, stack) => Container(
                                                         color: AppTheme.sageLight,
                                                         child: const Icon(Icons.broken_image_rounded, color: AppTheme.sageGreen),

@@ -134,6 +134,12 @@ class _AmbientPainter extends CustomPainter {
   final List<_AmbientParticle> particles;
   final double opacityMultiplier;
 
+  final Paint _starPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _petalPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _orbHaloPaint = Paint()..style = PaintingStyle.fill;
+  final Paint _orbCorePaint = Paint()..style = PaintingStyle.fill;
+  final Path _starPath = Path();
+
   _AmbientPainter({
     required this.progress,
     required this.particles,
@@ -167,32 +173,29 @@ class _AmbientPainter extends CustomPainter {
           canvas.save();
           canvas.translate(x, y);
           canvas.rotate(math.sin(t + p.phase) * 0.6);
-          final petalPaint = Paint()
-            ..color = AppTheme.blushPink.withValues(alpha: 0.35 * alpha)
-            ..style = PaintingStyle.fill;
+          _petalPaint.color = AppTheme.blushPink.withValues(alpha: 0.35 * alpha);
           canvas.drawOval(
             Rect.fromCenter(center: Offset.zero, width: p.size * 1.4, height: p.size * 0.85),
-            petalPaint,
+            _petalPaint,
           );
           canvas.restore();
           break;
         case _ParticleKind.sageOrb:
-          final orbPaint = Paint()
-            ..color = AppTheme.sageGreen.withValues(alpha: 0.16 * alpha)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-          canvas.drawCircle(Offset(x, y), p.size, orbPaint);
+          final center = Offset(x, y);
+          _orbHaloPaint.color = AppTheme.sageGreen.withValues(alpha: 0.08 * alpha);
+          _orbCorePaint.color = AppTheme.sageGreen.withValues(alpha: 0.14 * alpha);
+          canvas.drawCircle(center, p.size * 1.25, _orbHaloPaint);
+          canvas.drawCircle(center, p.size * 0.85, _orbCorePaint);
           break;
       }
     }
   }
 
   void _drawFourPointStar(Canvas canvas, Offset center, double radius, Color color) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
+    _starPaint.color = color;
     final inner = radius * 0.28;
-    final path = Path()
+    _starPath
+      ..reset()
       ..moveTo(center.dx, center.dy - radius)
       ..lineTo(center.dx + inner, center.dy - inner)
       ..lineTo(center.dx + radius, center.dy)
@@ -203,7 +206,7 @@ class _AmbientPainter extends CustomPainter {
       ..lineTo(center.dx - inner, center.dy - inner)
       ..close();
 
-    canvas.drawPath(path, paint);
+    canvas.drawPath(_starPath, _starPaint);
   }
 
   @override
@@ -306,9 +309,11 @@ class QuincePrimaryButton extends StatelessWidget {
 
     if (onPressed == null) return buttonContent;
 
-    return buttonContent
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(delay: 2400.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110));
+    return RepaintBoundary(
+      child: buttonContent
+          .animate(onPlay: (c) => c.repeat())
+          .shimmer(delay: 2400.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
+    );
   }
 }
 

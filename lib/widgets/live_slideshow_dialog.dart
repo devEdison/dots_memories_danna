@@ -94,6 +94,17 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog>
       _slideController.forward(from: 0.0);
     }
     _scheduleHideControls();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _precacheAdjacentSlide());
+  }
+
+  void _precacheAdjacentSlide() {
+    if (!mounted || _items.length < 2) return;
+    final nextIndex = (_currentIndex + 1) % _items.length;
+    precacheImage(
+      _items[nextIndex].photo.imageProvider,
+      context,
+      onError: (_, _) {},
+    );
   }
 
   void _rebuildItemsList(
@@ -224,6 +235,7 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog>
     setState(() {
       _currentIndex = (_currentIndex + 1) % _items.length;
     });
+    _precacheAdjacentSlide();
 
     if (_isPlaying) {
       _slideController.forward(from: 0.0);
@@ -239,6 +251,7 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog>
     setState(() {
       _currentIndex = (_currentIndex - 1 + _items.length) % _items.length;
     });
+    _precacheAdjacentSlide();
 
     if (_isPlaying) {
       _slideController.forward(from: 0.0);
@@ -540,20 +553,24 @@ class _LiveSlideshowDialogState extends State<LiveSlideshowDialog>
             _buildStageBackdropGradient(),
 
             // 2. RESPLANDOR AMBIENTAL DIFUMINADO DE LA FOTO ACTUAL
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 1200),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              child: SizedBox.expand(
-                key: ValueKey<String>('bg_${currentItem.photo.id}'),
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-                  child: Opacity(
-                    opacity: 0.36,
-                    child: Image(
-                      image: currentItem.photo.imageProvider,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            RepaintBoundary(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 1200),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
+                child: SizedBox.expand(
+                  key: ValueKey<String>('bg_${currentItem.photo.id}'),
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                    child: Opacity(
+                      opacity: 0.36,
+                      child: Image(
+                        image: currentItem.photo.imageProvider,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
                     ),
                   ),
                 ),
@@ -925,6 +942,8 @@ class _AnimatedKenBurnsStage extends StatelessWidget {
       child: Image(
         image: item.photo.imageProvider,
         fit: BoxFit.contain,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.high,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
           if (wasSynchronouslyLoaded) return child;
           return AnimatedOpacity(

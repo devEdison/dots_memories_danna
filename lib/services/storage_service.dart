@@ -45,6 +45,9 @@ class StorageService {
   static const String _prefKeyMyGuestName = 'dots_my_guest_name_v1';
   static const String _prefKeyDeviceId = 'dots_device_id_v1';
 
+  final http.Client _httpClient = http.Client();
+  Future<int>? _inFlightSync;
+
   String deviceId = '';
 
   final ValueNotifier<List<MemoryFolder>> foldersNotifier = ValueNotifier<List<MemoryFolder>>([]);
@@ -254,17 +257,67 @@ class StorageService {
         ? comment.trim()
         : (existingFolder?.comment ?? '');
 
-    // Crear elementos de memoria para visualización inmediata
+    // Codificar Base64 una sola vez por archivo para reducir uso de memoria y CPU
+    final encodedBase64 = <String?>[];
+    for (final f in files) {
+      encodedBase64.add(f.isVideo && f.size > 24 * 1024 * 1024 ? null : base64Encode(f.bytes));
+    }
+
+    // 1. Subir a Appwrite Storage en lotes concurrentes (máx. 3 en paralelo)
+    final currentConfig = configNotifier.value;
+    uploadStatusNotifier.value = 'Subiendo a Appwrite Storage CDN...';
+    uploadProgressNotifier.value = 0.15;
+
+    final appwritePhotoUrls = List<String?>.filled(files.length, null);
+    int completedAppwrite = 0;
+    const maxConcurrency = 3;
+
+    Future<void> uploadSingleToAppwrite(int index) async {
+      final f = files[index];
+      try {
+        final uploadUri = Uri.parse(
+          '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files',
+        );
+        final request = http.MultipartRequest('POST', uploadUri)
+          ..headers['X-Appwrite-Project'] = currentConfig.appwriteProjectId
+          ..fields['fileId'] = 'unique()'
+          ..files.add(http.MultipartFile.fromBytes('file', f.bytes, filename: f.name));
+        final streamed = await _httpClient.send(request).timeout(const Duration(seconds: 45));
+        final body = await streamed.stream.bytesToString();
+        if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
+          final resJson = jsonDecode(body) as Map<String, dynamic>;
+          final fId = resJson[r'$id'] as String;
+          appwritePhotoUrls[index] =
+              '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files/$fId/view?project=${currentConfig.appwriteProjectId}';
+        }
+      } catch (e) {
+        debugPrint('Aviso subida Appwrite Storage: $e');
+      } finally {
+        completedAppwrite++;
+        uploadProgressNotifier.value = 0.15 + (completedAppwrite / files.length) * 0.35;
+      }
+    }
+
+    for (int start = 0; start < files.length; start += maxConcurrency) {
+      final end = (start + maxConcurrency) < files.length ? (start + maxConcurrency) : files.length;
+      await Future.wait([
+        for (int idx = start; idx < end; idx++) uploadSingleToAppwrite(idx),
+      ]);
+    }
+
+    // Crear elementos de memoria para visualización inmediata (con URL de CDN lista)
     final localPhotoItems = <MemoryItem>[];
     final startIndex = existingFolder?.photos.length ?? 0;
     for (int i = 0; i < files.length; i++) {
       final f = files[i];
+      final aUrl = appwritePhotoUrls[i];
       localPhotoItems.add(
         MemoryItem(
           id: '${folderId}_media_${startIndex + i}',
           fileName: f.name,
           bytes: f.bytes,
-          base64Data: f.isVideo ? null : base64Encode(f.bytes),
+          remoteUrl: aUrl,
+          base64Data: (aUrl != null || f.isVideo) ? null : encodedBase64[i],
           timestamp: now,
           fileSize: f.size,
           mimeType: f.mimeType,
@@ -290,39 +343,6 @@ class StorageService {
             isSyncedToGoogle: false,
           );
 
-    // 1. Subir a Appwrite Storage para CDN rápido y sin error 429
-    final currentConfig = configNotifier.value;
-    uploadStatusNotifier.value = 'Subiendo a Appwrite Storage CDN...';
-    uploadProgressNotifier.value = 0.25;
-
-    final appwritePhotoUrls = <String?>[];
-    for (int i = 0; i < files.length; i++) {
-      final f = files[i];
-      try {
-        final uploadUri = Uri.parse(
-          '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files',
-        );
-        final request = http.MultipartRequest('POST', uploadUri)
-          ..headers['X-Appwrite-Project'] = currentConfig.appwriteProjectId
-          ..fields['fileId'] = 'unique()'
-          ..files.add(http.MultipartFile.fromBytes('file', f.bytes, filename: f.name));
-        final streamed = await request.send().timeout(const Duration(seconds: 45));
-        final body = await streamed.stream.bytesToString();
-        if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
-          final resJson = jsonDecode(body) as Map<String, dynamic>;
-          final fId = resJson[r'$id'] as String;
-          appwritePhotoUrls.add(
-            '${currentConfig.appwriteEndpoint}/storage/buckets/${currentConfig.appwriteBucketId}/files/$fId/view?project=${currentConfig.appwriteProjectId}',
-          );
-        } else {
-          appwritePhotoUrls.add(null);
-        }
-      } catch (e) {
-        debugPrint('Aviso subida Appwrite Storage: $e');
-        appwritePhotoUrls.add(null);
-      }
-    }
-
     // 2. Intentar subida y respaldo a Google Apps Script / Google Drive si está configurado
     if (currentConfig.useGoogleBackend &&
         currentConfig.googleScriptUrl.trim().isNotEmpty) {
@@ -330,18 +350,6 @@ class StorageService {
       uploadProgressNotifier.value = 0.55;
 
       try {
-        final photosPayload = [];
-        for (int i = 0; i < files.length; i++) {
-          final f = files[i];
-          final aUrl = i < appwritePhotoUrls.length ? appwritePhotoUrls[i] : null;
-          photosPayload.add({
-            'name': f.name,
-            'type': f.mimeType,
-            'base64': base64Encode(f.bytes),
-            'appwriteUrl': aUrl,
-          });
-        }
-
         String? targetGoogleFolderId = existingFolder?.googleFolderId;
         if (targetGoogleFolderId == null || targetGoogleFolderId.isEmpty) {
           if (existingFolder != null && !existingFolder.id.startsWith('folder_')) {
@@ -349,71 +357,125 @@ class StorageService {
           }
         }
 
-        final payload = jsonEncode({
-          'guestName': targetGuestName,
-          'comment': targetComment,
-          'deviceId': deviceId,
-          'folderId': targetGoogleFolderId,
-          'photos': photosPayload,
-        });
+        // Dividir en lotes seguros si el payload base64 supera ~14 MB para evitar timeouts de Apps Script
+        final chunks = <List<int>>[];
+        var currentChunk = <int>[];
+        var currentChunkBytes = 0;
+        const maxChunkBase64Chars = 14 * 1024 * 1024;
 
-        uploadProgressNotifier.value = 0.75;
-        uploadStatusNotifier.value = 'Guardando dedicatoria y archivos en tu carpeta...';
-
-        final response = await http.post(
-          Uri.parse(currentConfig.googleScriptUrl.trim()),
-          body: payload,
-          headers: {'Content-Type': 'text/plain'},
-        ).timeout(const Duration(seconds: 55));
-
-        uploadProgressNotifier.value = 0.90;
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          try {
-            final resJson = jsonDecode(response.body) as Map<String, dynamic>;
-            if (resJson['status'] == 'success') {
-              final googleFolderUrl = resJson['folderUrl'] as String?;
-              final googleFolderId = resJson['folderId'] as String?;
-              final remotePhotos = resJson['photos'] as List<dynamic>?;
-
-              final updatedNewPhotos = <MemoryItem>[];
-              for (int i = 0; i < localPhotoItems.length; i++) {
-                String? remoteUrl;
-                if (i < appwritePhotoUrls.length && appwritePhotoUrls[i] != null) {
-                  remoteUrl = appwritePhotoUrls[i];
-                } else if (remotePhotos != null && i < remotePhotos.length) {
-                  remoteUrl = remotePhotos[i]['url'] as String?;
-                }
-                updatedNewPhotos.add(
-                  MemoryItem(
-                    id: localPhotoItems[i].id,
-                    fileName: localPhotoItems[i].fileName,
-                    bytes: localPhotoItems[i].bytes,
-                    remoteUrl: remoteUrl,
-                    base64Data: localPhotoItems[i].base64Data,
-                    timestamp: localPhotoItems[i].timestamp,
-                    fileSize: localPhotoItems[i].fileSize,
-                    mimeType: localPhotoItems[i].mimeType,
-                  ),
-                );
-              }
-
-              final finalPhotos = existingFolder != null
-                  ? [...existingFolder.photos, ...updatedNewPhotos]
-                  : updatedNewPhotos;
-
-              activeFolder = activeFolder.copyWith(
-                folderUrl: googleFolderUrl ?? existingFolder?.folderUrl,
-                googleFolderId: googleFolderId ?? existingFolder?.googleFolderId,
-                photos: finalPhotos,
-                deviceId: deviceId,
-                isSyncedToGoogle: true,
-              );
-              uploadStatusNotifier.value = '¡Guardado con éxito en tu carpeta!';
-            }
-          } catch (e) {
-            debugPrint('Aviso al interpretar respuesta de Google: $e');
+        for (int i = 0; i < files.length; i++) {
+          final b64Len = encodedBase64[i]?.length ?? 0;
+          if (currentChunk.isNotEmpty &&
+              (currentChunkBytes + b64Len > maxChunkBase64Chars || currentChunk.length >= 4)) {
+            chunks.add(currentChunk);
+            currentChunk = <int>[];
+            currentChunkBytes = 0;
           }
+          currentChunk.add(i);
+          currentChunkBytes += b64Len;
+        }
+        if (currentChunk.isNotEmpty) {
+          chunks.add(currentChunk);
+        }
+
+        String? googleFolderUrl = existingFolder?.folderUrl;
+        final remoteUrlByFileIndex = <int, String?>{};
+        bool googleSuccess = false;
+
+        for (int cIdx = 0; cIdx < chunks.length; cIdx++) {
+          final chunkIndices = chunks[cIdx];
+          final photosPayload = <Map<String, dynamic>>[];
+          for (final i in chunkIndices) {
+            final f = files[i];
+            photosPayload.add({
+              'name': f.name,
+              'type': f.mimeType,
+              'base64': encodedBase64[i] ?? base64Encode(f.bytes),
+              'appwriteUrl': appwritePhotoUrls[i],
+            });
+          }
+
+          final payload = jsonEncode({
+            'guestName': targetGuestName,
+            'comment': targetComment,
+            'deviceId': deviceId,
+            'folderId': targetGoogleFolderId,
+            'photos': photosPayload,
+          });
+
+          uploadProgressNotifier.value = 0.58 + ((cIdx + 0.5) / chunks.length) * 0.34;
+          uploadStatusNotifier.value = chunks.length > 1
+              ? 'Respaldando lote ${cIdx + 1} de ${chunks.length} en Drive...'
+              : 'Guardando dedicatoria y archivos en tu carpeta...';
+
+          final response = await _httpClient
+              .post(
+                Uri.parse(currentConfig.googleScriptUrl.trim()),
+                body: payload,
+                headers: {'Content-Type': 'text/plain'},
+              )
+              .timeout(const Duration(seconds: 55));
+
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            try {
+              final resJson = jsonDecode(response.body) as Map<String, dynamic>;
+              if (resJson['status'] == 'success') {
+                googleSuccess = true;
+                googleFolderUrl = (resJson['folderUrl'] as String?) ?? googleFolderUrl;
+                targetGoogleFolderId = (resJson['folderId'] as String?) ?? targetGoogleFolderId;
+                final remotePhotos = resJson['photos'] as List<dynamic>?;
+                    if (remotePhotos != null) {
+                  for (final i in chunkIndices) {
+                    final f = files[i];
+                    Map<String, dynamic>? match;
+                    for (final rp in remotePhotos) {
+                      if (rp is Map<String, dynamic> && rp['name'] == f.name) {
+                        match = rp;
+                        break;
+                      }
+                    }
+                    if (match != null && match['url'] is String) {
+                      remoteUrlByFileIndex[i] = match['url'] as String;
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('Aviso al interpretar respuesta de Google: $e');
+            }
+          }
+        }
+
+        if (googleSuccess) {
+          final updatedNewPhotos = <MemoryItem>[];
+          for (int i = 0; i < localPhotoItems.length; i++) {
+            final resolvedUrl = appwritePhotoUrls[i] ?? remoteUrlByFileIndex[i];
+            updatedNewPhotos.add(
+              MemoryItem(
+                id: localPhotoItems[i].id,
+                fileName: localPhotoItems[i].fileName,
+                bytes: localPhotoItems[i].bytes,
+                remoteUrl: resolvedUrl,
+                base64Data: resolvedUrl != null ? null : localPhotoItems[i].base64Data,
+                timestamp: localPhotoItems[i].timestamp,
+                fileSize: localPhotoItems[i].fileSize,
+                mimeType: localPhotoItems[i].mimeType,
+              ),
+            );
+          }
+
+          final finalPhotos = existingFolder != null
+              ? [...existingFolder.photos, ...updatedNewPhotos]
+              : updatedNewPhotos;
+
+          activeFolder = activeFolder.copyWith(
+            folderUrl: googleFolderUrl ?? existingFolder?.folderUrl,
+            googleFolderId: targetGoogleFolderId ?? existingFolder?.googleFolderId,
+            photos: finalPhotos,
+            deviceId: deviceId,
+            isSyncedToGoogle: true,
+          );
+          uploadStatusNotifier.value = '¡Guardado con éxito en tu carpeta!';
         }
       } catch (e) {
         debugPrint('Error enviando a Google Apps Script: $e');
@@ -475,23 +537,73 @@ class StorageService {
     return true;
   }
 
+  String _foldersFingerprint(List<MemoryFolder> list) {
+    final buf = StringBuffer();
+    for (final f in list) {
+      buf
+        ..write(f.id)
+        ..write('|')
+        ..write(f.guestName)
+        ..write('|')
+        ..write(f.comment)
+        ..write('|')
+        ..write(f.likes)
+        ..write('|')
+        ..write(f.photos.length)
+        ..write('|');
+      for (final p in f.photos) {
+        buf
+          ..write(p.id)
+          ..write(':')
+          ..write(p.remoteUrl ?? p.fileName)
+          ..write(',');
+      }
+      buf.write(';');
+    }
+    return buf.toString();
+  }
+
   /// Sincroniza en tiempo real las carpetas y fotos subidas a Google Drive / Fotos
-  Future<int> syncMemoriesFromGoogle({bool showLoading = false}) async {
+  Future<int> syncMemoriesFromGoogle({bool showLoading = false}) {
     final currentConfig = configNotifier.value;
     if (!currentConfig.useGoogleBackend || currentConfig.googleScriptUrl.trim().isEmpty) {
-      return 0;
+      return Future.value(0);
     }
 
     if (showLoading) {
       isSyncingNotifier.value = true;
     }
 
+    if (_inFlightSync != null) {
+      return _inFlightSync!;
+    }
+
+    final future = _performSyncMemoriesFromGoogle(currentConfig);
+    _inFlightSync = future;
+    future.whenComplete(() {
+      if (identical(_inFlightSync, future)) {
+        _inFlightSync = null;
+      }
+    });
+    return future;
+  }
+
+  Future<int> _performSyncMemoriesFromGoogle(AppConfig currentConfig) async {
     try {
       final listUri = Uri.parse('${currentConfig.googleScriptUrl.trim()}?action=list');
-      final response = await http.get(listUri).timeout(const Duration(seconds: 25));
+      final response = await _httpClient.get(listUri).timeout(const Duration(seconds: 25));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Preservar conteo de likes locales entre sincronizaciones
+        final existingLikes = <String, int>{};
+        for (final existing in foldersNotifier.value) {
+          existingLikes[existing.id] = existing.likes;
+          if (existing.googleFolderId != null) {
+            existingLikes[existing.googleFolderId!] = existing.likes;
+          }
+        }
 
         // Actualizar URL directa de la carpeta principal de Google Drive si viene en la respuesta
         final driveUrl = data['mainDriveFolderUrl'] as String?;
@@ -550,11 +662,12 @@ class StorageService {
                 }
               }
 
-              final isVid = pName.toLowerCase().endsWith('.mp4') ||
-                  pName.toLowerCase().endsWith('.mov') ||
-                  pName.toLowerCase().endsWith('.webm') ||
-                  pName.toLowerCase().endsWith('.avi') ||
-                  pName.toLowerCase().endsWith('.mkv');
+              final lowerName = pName.toLowerCase();
+              final isVid = lowerName.endsWith('.mp4') ||
+                  lowerName.endsWith('.mov') ||
+                  lowerName.endsWith('.webm') ||
+                  lowerName.endsWith('.avi') ||
+                  lowerName.endsWith('.mkv');
 
               photosItems.add(
                 MemoryItem(
@@ -592,9 +705,10 @@ class StorageService {
               }
             }
 
+            final resolvedId = folderId ?? UniqueKey().toString();
             loadedFolders.add(
               MemoryFolder(
-                id: folderId ?? UniqueKey().toString(),
+                id: resolvedId,
                 guestName: cleanGuestName.isEmpty ? 'Invitado Especial' : cleanGuestName,
                 comment: cleanComment,
                 timestamp: folderMap['created'] != null
@@ -604,6 +718,7 @@ class StorageService {
                 folderUrl: folderMap['folderUrl'] as String?,
                 googleFolderId: folderId,
                 deviceId: isMyDevice ? deviceId : remoteDevId,
+                likes: existingLikes[resolvedId] ?? (folderId != null ? existingLikes[folderId] : null) ?? 0,
                 isSyncedToGoogle: true,
               ),
             );
@@ -636,6 +751,7 @@ class StorageService {
                   googleFolderId: existing.googleFolderId ?? f.googleFolderId,
                   folderUrl: existing.folderUrl ?? f.folderUrl,
                   deviceId: deviceId,
+                  likes: existing.likes > f.likes ? existing.likes : f.likes,
                 );
               } else {
                 consolidated[key] = f;
@@ -645,8 +761,12 @@ class StorageService {
             final finalFolders = consolidated.values.toList();
             // Ordenar con las más recientes primero
             finalFolders.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-            foldersNotifier.value = finalFolders;
-            await _saveFoldersToDisk();
+
+            // Evitar reconstrucciones UI y escrituras en disco si no hubo cambios reales
+            if (_foldersFingerprint(finalFolders) != _foldersFingerprint(foldersNotifier.value)) {
+              foldersNotifier.value = finalFolders;
+              await _saveFoldersToDisk();
+            }
             return finalFolders.length;
           }
         }
@@ -688,7 +808,7 @@ class StorageService {
       final uri = Uri.parse(scriptUrl.trim()).replace(
         queryParameters: {'action': 'ping'},
       );
-      final res = await http.get(uri).timeout(const Duration(seconds: 15));
+      final res = await _httpClient.get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
         final json = jsonDecode(res.body) as Map<String, dynamic>;
         if (json['status'] == 'ok') {

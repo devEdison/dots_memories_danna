@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -28,6 +29,7 @@ class GuestPortalScreen extends StatefulWidget {
 }
 
 class _GuestPortalScreenState extends State<GuestPortalScreen> {
+  static final DateFormat _guestDateFormat = DateFormat('dd/MM/yyyy • hh:mm a', 'es');
   final TextEditingController _linkNameController = TextEditingController();
 
   @override
@@ -277,6 +279,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
         return Scaffold(
           backgroundColor: AppTheme.scaffoldBg,
           body: CustomScrollView(
+            scrollCacheExtent: const ScrollCacheExtent.pixels(600),
             slivers: [
               // HERO HEADER AISLADO EN VERDE SALVIA, ROSADO Y DORADO
               SliverToBoxAdapter(
@@ -769,10 +772,10 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final folder = myFolders[index];
-                        final dateFormat = DateFormat('dd/MM/yyyy • hh:mm a', 'es');
-                        final dateStr = dateFormat.format(folder.timestamp);
+                        final dateStr = _guestDateFormat.format(folder.timestamp);
 
-                        return Center(
+                        return RepaintBoundary(
+                          child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 900),
                             child: Container(
@@ -938,8 +941,10 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                                   )
                                                 else
                                                   Image(
-                                                    image: photo.imageProvider,
+                                                    image: photo.thumbnailProvider,
                                                     fit: BoxFit.cover,
+                                                    gaplessPlayback: true,
+                                                    filterQuality: FilterQuality.medium,
                                                     errorBuilder: (ctx, err, stack) => Container(
                                                       color: AppTheme.sageLight,
                                                       child: const Center(
@@ -957,10 +962,11 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                                 ],
                               ),
                             )
-                                .animate(delay: (index * 80).ms)
+                                .animate(delay: ((index % 5) * 80).ms)
                                 .fadeIn(duration: 420.ms)
                                 .slideY(begin: 0.04, end: 0, curve: Curves.easeOut),
                           ),
+                        ),
                         );
                       },
                       childCount: myFolders.length,

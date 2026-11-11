@@ -110,18 +110,24 @@ function doPost(e) {
       }));
     } catch (e) { }
 
-    // 3. Guardar el archivo de texto con la dedicatoria
+    // 3. Guardar o actualizar el archivo de texto con la dedicatoria (evita duplicados al subir más fotos)
     const noteContent = "═══════════════════════════════════════════════════════\r\n" +
       "  MIS 15 AÑOS - DANNA | RECUERDO DE INVITADO\r\n" +
       "═══════════════════════════════════════════════════════\r\n\r\n" +
       "De: " + guestName + "\r\n" +
       "Fecha: " + Utilities.formatDate(now, Session.getScriptTimeZone() || "GMT-6", "dd/MM/yyyy HH:mm:ss") + "\r\n" +
-      "Total de fotos: " + photos.length + "\r\n" +
+      "Último lote: " + photos.length + " archivo(s)\r\n" +
       "Álbum Google Fotos: " + GOOGLE_PHOTOS_ALBUM_URL + "\r\n\r\n" +
       "DEDICATORIA / MENSAJE:\r\n" +
       (comment ? comment : "(Sin mensaje de texto)") + "\r\n\r\n" +
       "═══════════════════════════════════════════════════════";
-    guestFolder.createFile("Dedicatoria_" + safeGuestName + ".txt", noteContent, "text/plain");
+    const dedicationFileName = "Dedicatoria_" + safeGuestName + ".txt";
+    const existingDedication = guestFolder.getFilesByName(dedicationFileName);
+    if (existingDedication.hasNext()) {
+      existingDedication.next().setContent(noteContent);
+    } else {
+      guestFolder.createFile(dedicationFileName, noteContent, "text/plain");
+    }
 
     // 4. Guardar cada una de las fotos en Drive y subir al Álbum de Google Fotos
     const savedPhotos = [];
@@ -310,14 +316,13 @@ function doGet(e) {
 
       while (subfolders.hasNext()) {
         const folder = subfolders.next();
-        const files = folder.getFiles();
         const photosList = [];
         var commentText = "";
         var guestNameText = "";
 
         var deviceIdText = "";
 
-        // Lectura ultra rápida desde metadatos cacheados
+        // Lectura ultra rápida desde metadatos cacheados (antes de listar archivos de Drive)
         try {
           const desc = folder.getDescription();
           if (desc && desc.startsWith("{")) {
@@ -343,6 +348,7 @@ function doGet(e) {
         } catch (cacheErr) { }
 
         // Si no hay metadatos cacheados, recorrer archivos de la carpeta
+        const files = folder.getFiles();
         while (files.hasNext()) {
           const f = files.next();
           const mime = f.getMimeType();

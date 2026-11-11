@@ -13,6 +13,10 @@ class MemoryItem {
   final int fileSize;
   final String? mimeType;
 
+  ImageProvider? _cachedImageProvider;
+  ImageProvider? _cachedThumbnailProvider;
+  Uint8List? _decodedBytes;
+
   MemoryItem({
     required this.id,
     required this.fileName,
@@ -40,25 +44,49 @@ class MemoryItem {
         lower.endsWith('.3gp');
   }
 
-  /// Retorna un ImageProvider adecuado según los datos disponibles
-  ImageProvider get imageProvider {
-    if (bytes != null && bytes!.isNotEmpty) {
-      return MemoryImage(bytes!);
+  Uint8List? _resolveLocalBytes() {
+    if (bytes != null && bytes!.isNotEmpty) return bytes;
+    if (_decodedBytes != null) return _decodedBytes;
+    if (base64Data != null && base64Data!.isNotEmpty) {
+      try {
+        _decodedBytes = base64Decode(base64Data!);
+        return _decodedBytes;
+      } catch (_) {}
     }
-    if (remoteUrl != null && remoteUrl!.isNotEmpty) {
-      return NetworkImage(
+    return null;
+  }
+
+  /// Retorna y cachea un ImageProvider en resolución completa para lightbox y proyector
+  ImageProvider get imageProvider {
+    if (_cachedImageProvider != null) return _cachedImageProvider!;
+    final localBytes = _resolveLocalBytes();
+    if (localBytes != null) {
+      _cachedImageProvider = MemoryImage(localBytes);
+    } else if (remoteUrl != null && remoteUrl!.isNotEmpty) {
+      _cachedImageProvider = NetworkImage(
         remoteUrl!,
         webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
       );
+    } else {
+      _cachedImageProvider = MemoryImage(_transparentPixel);
     }
-    if (base64Data != null && base64Data!.isNotEmpty) {
-      try {
-        final decoded = base64Decode(base64Data!);
-        return MemoryImage(decoded);
-      } catch (_) {}
+    return _cachedImageProvider!;
+  }
+
+  /// Retorna y cachea una versión optimizada para miniaturas (evita decodificar buffers 4K en grids)
+  ImageProvider get thumbnailProvider {
+    if (_cachedThumbnailProvider != null) return _cachedThumbnailProvider!;
+    final localBytes = _resolveLocalBytes();
+    if (localBytes != null) {
+      _cachedThumbnailProvider = ResizeImage.resizeIfNeeded(
+        480,
+        null,
+        MemoryImage(localBytes),
+      );
+    } else {
+      _cachedThumbnailProvider = imageProvider;
     }
-    // Fallback: pixel transparente
-    return MemoryImage(_transparentPixel);
+    return _cachedThumbnailProvider!;
   }
 
   static final Uint8List _transparentPixel = Uint8List.fromList([
@@ -71,12 +99,20 @@ class MemoryItem {
   ]);
 
   Map<String, dynamic> toJson() {
+    String? safeInlineBase64;
+    if (remoteUrl == null) {
+      if (base64Data != null && base64Data!.length <= 350000) {
+        safeInlineBase64 = base64Data;
+      } else if (bytes != null && bytes!.length <= 262144) {
+        safeInlineBase64 = base64Encode(bytes!);
+      }
+    }
     return {
       'id': id,
       'fileName': fileName,
       'remoteUrl': remoteUrl,
-      // Solo guardar base64 si NO hay URL remota en la nube, para no exceder la cuota de 5MB de localStorage
-      'base64Data': remoteUrl != null ? null : (base64Data ?? (bytes != null ? base64Encode(bytes!) : null)),
+      // Evitar exceder la cuota de 5MB de localStorage si no hay URL remota
+      'base64Data': safeInlineBase64,
       'timestamp': timestamp.toIso8601String(),
       'caption': caption,
       'fileSize': fileSize,

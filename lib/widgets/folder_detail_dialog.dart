@@ -371,8 +371,10 @@ class FolderDetailDialog extends StatelessWidget {
                                           ),
                                         )
                                       : Image(
-                                          image: photo.imageProvider,
+                                          image: photo.thumbnailProvider,
                                           fit: BoxFit.cover,
+                                          gaplessPlayback: true,
+                                          filterQuality: FilterQuality.medium,
                                           errorBuilder: (context, error, stackTrace) {
                                             return Container(
                                               color: AppTheme.softPinkBg,

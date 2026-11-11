@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import 'festive_effects.dart';
 
 class FolderCard extends StatelessWidget {
+  static final DateFormat _dateFormatter = DateFormat('d MMM, h:mm a', 'es');
+
   final MemoryFolder folder;
   final VoidCallback onOpen;
   final VoidCallback onLike;
@@ -22,7 +24,7 @@ class FolderCard extends StatelessWidget {
     if (diff.inMinutes < 1) return 'Justo ahora';
     if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
-    return DateFormat('d MMM, h:mm a', 'es').format(dt);
+    return _dateFormatter.format(dt);
   }
 
   Color _getAvatarColor(String name) {
@@ -53,8 +55,9 @@ class FolderCard extends StatelessWidget {
     final avatarColor = _getAvatarColor(folder.guestName);
     final photoCount = folder.photos.length;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return RepaintBoundary(
+      child: Card(
+        clipBehavior: Clip.antiAlias,
       elevation: 5,
       shadowColor: AppTheme.warmGold.withAlpha(45),
       shape: RoundedRectangleBorder(
@@ -282,6 +285,7 @@ class FolderCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -307,15 +311,15 @@ class FolderCard extends StatelessWidget {
     }
 
     if (photos.length == 1) {
-      return _buildImageTile(photos[0].imageProvider);
+      return _buildImageTile(photos[0].thumbnailProvider);
     }
 
     if (photos.length == 2) {
       return Row(
         children: [
-          Expanded(child: _buildImageTile(photos[0].imageProvider)),
+          Expanded(child: _buildImageTile(photos[0].thumbnailProvider)),
           const SizedBox(width: 2),
-          Expanded(child: _buildImageTile(photos[1].imageProvider)),
+          Expanded(child: _buildImageTile(photos[1].thumbnailProvider)),
         ],
       );
     }
@@ -323,15 +327,15 @@ class FolderCard extends StatelessWidget {
     if (photos.length == 3) {
       return Row(
         children: [
-          Expanded(flex: 2, child: _buildImageTile(photos[0].imageProvider)),
+          Expanded(flex: 2, child: _buildImageTile(photos[0].thumbnailProvider)),
           const SizedBox(width: 2),
           Expanded(
             flex: 1,
             child: Column(
               children: [
-                Expanded(child: _buildImageTile(photos[1].imageProvider)),
+                Expanded(child: _buildImageTile(photos[1].thumbnailProvider)),
                 const SizedBox(height: 2),
-                Expanded(child: _buildImageTile(photos[2].imageProvider)),
+                Expanded(child: _buildImageTile(photos[2].thumbnailProvider)),
               ],
             ),
           ),
@@ -347,9 +351,9 @@ class FolderCard extends StatelessWidget {
           flex: 1,
           child: Column(
             children: [
-              Expanded(child: _buildImageTile(photos[0].imageProvider)),
+              Expanded(child: _buildImageTile(photos[0].thumbnailProvider)),
               const SizedBox(height: 2),
-              Expanded(child: _buildImageTile(photos[1].imageProvider)),
+              Expanded(child: _buildImageTile(photos[1].thumbnailProvider)),
             ],
           ),
         ),
@@ -358,13 +362,13 @@ class FolderCard extends StatelessWidget {
           flex: 1,
           child: Column(
             children: [
-              Expanded(child: _buildImageTile(photos[2].imageProvider)),
+              Expanded(child: _buildImageTile(photos[2].thumbnailProvider)),
               const SizedBox(height: 2),
               Expanded(
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _buildImageTile(photos[3].imageProvider),
+                    _buildImageTile(photos[3].thumbnailProvider),
                     if (extra > 0)
                       Container(
                         color: Colors.black.withAlpha(150),
@@ -395,6 +399,8 @@ class FolderCard extends StatelessWidget {
       child: Image(
         image: provider,
         fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
         width: double.infinity,
         height: double.infinity,
         errorBuilder: (context, error, stackTrace) {

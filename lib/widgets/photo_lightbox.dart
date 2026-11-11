@@ -122,6 +122,8 @@ class _PhotoLightboxState extends State<PhotoLightbox> {
                       child: Image(
                         image: photo.imageProvider,
                         fit: BoxFit.contain,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.high,
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
                           return Center(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dots_memories_danna/main.dart';
@@ -114,5 +115,38 @@ void main() {
 
     expect(find.text('Carlos Rivera'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  test('MemoryItem caches providers and protects localStorage quota in toJson', () {
+    final item = MemoryItem(
+      id: 'cache_test_1',
+      fileName: 'recuerdo.png',
+      base64Data: base64Encode(samplePngBytes),
+      timestamp: DateTime(2026, 11, 10),
+    );
+
+    final firstFull = item.imageProvider;
+    final secondFull = item.imageProvider;
+    final firstThumb = item.thumbnailProvider;
+    final secondThumb = item.thumbnailProvider;
+
+    expect(identical(firstFull, secondFull), isTrue);
+    expect(identical(firstThumb, secondThumb), isTrue);
+
+    final oversizedItem = MemoryItem(
+      id: 'oversized_1',
+      fileName: 'camara_4k.jpg',
+      bytes: Uint8List(400 * 1024),
+      timestamp: DateTime(2026, 11, 10),
+    );
+    expect(oversizedItem.toJson()['base64Data'], isNull);
+
+    final smallItem = MemoryItem(
+      id: 'small_1',
+      fileName: 'mini.png',
+      bytes: samplePngBytes,
+      timestamp: DateTime(2026, 11, 10),
+    );
+    expect(smallItem.toJson()['base64Data'], isNotNull);
   });
 }
