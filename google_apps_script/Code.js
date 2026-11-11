@@ -52,6 +52,10 @@ function doPost(e) {
     }
 
     const data = JSON.parse(e.postData.contents);
+    if (data.action === "deleteFolder") {
+      return deleteFolderInDrive_(data);
+    }
+
     const guestName = (data.guestName || "Invitado Especial").trim();
     const comment = (data.comment || "").trim();
     const photos = data.photos || [];
@@ -333,6 +337,86 @@ function batchCreateGooglePhotosMediaItems_(token, items, guestName, comment) {
     }),
     muteHttpExceptions: true
   });
+}
+
+/**
+ * Elimina (envía a la papelera de Google Drive) una subcarpeta dentro de la carpeta del evento
+ */
+function deleteFolderInDrive_(data) {
+  const folderId = (data.folderId || "").trim();
+  const deviceId = (data.deviceId || "").trim();
+
+  if (!folderId && !deviceId) {
+    return responseJSON({
+      status: "error",
+      action: "deleteFolder",
+      message: "Falta el identificador de la carpeta a eliminar."
+    });
+  }
+
+  const lock = acquireScriptLock_(10000);
+  try {
+    const mainFolder = getOrCreateMainFolder(MAIN_DRIVE_FOLDER_NAME);
+    const subfolders = mainFolder.getFolders();
+    var targetFolder = null;
+
+    // Buscar estrictamente dentro de la carpeta principal del evento para mayor seguridad
+    while (subfolders.hasNext()) {
+      const sf = subfolders.next();
+      if (folderId && sf.getId() === folderId) {
+        targetFolder = sf;
+        break;
+      }
+      if (!targetFolder && deviceId) {
+        try {
+          const desc = sf.getDescription();
+          if (desc && desc.startsWith("{")) {
+            const parsed = JSON.parse(desc);
+            if (parsed.deviceId && parsed.deviceId === deviceId) {
+              targetFolder = sf;
+            }
+          }
+        } catch (parseErr) { }
+      }
+    }
+
+    if (!targetFolder) {
+      Logger.log("ℹ️ [deleteFolder] Carpeta no encontrada en Drive (posiblemente ya eliminada): " + folderId);
+      return responseJSON({
+        status: "success",
+        action: "deleteFolder",
+        deletedFolderId: folderId,
+        trashed: false,
+        alreadyMissing: true,
+        message: "La carpeta ya no estaba en Google Drive."
+      });
+    }
+
+    const deletedId = targetFolder.getId();
+    const deletedName = targetFolder.getName();
+    targetFolder.setTrashed(true);
+    Logger.log("🗑️ [deleteFolder] Carpeta enviada a la papelera de Drive: " + deletedName + " (" + deletedId + ")");
+
+    return responseJSON({
+      status: "success",
+      action: "deleteFolder",
+      deletedFolderId: deletedId,
+      deletedFolderName: deletedName,
+      trashed: true,
+      message: "Carpeta eliminada en Google Drive."
+    });
+  } catch (err) {
+    Logger.log("❌ [deleteFolder] Error eliminando carpeta: " + err.toString());
+    return responseJSON({
+      status: "error",
+      action: "deleteFolder",
+      message: err.toString()
+    });
+  } finally {
+    if (lock) {
+      try { lock.releaseLock(); } catch (relErr) { }
+    }
+  }
 }
 
 /**

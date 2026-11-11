@@ -770,11 +770,84 @@ class StorageService {
     }
   }
 
-  void deleteFolder(String folderId) {
+  /// Elimina la carpeta desde el administrador y también la envía a la papelera en Google Drive
+  Future<({bool success, String message})> deleteFolder(MemoryFolder folder) async {
+    final currentConfig = configNotifier.value;
+    final targetGoogleFolderId = folder.googleFolderId ??
+        ((!folder.id.startsWith('folder_')) ? folder.id : null);
+
+    final hasDriveIdentifier =
+        (targetGoogleFolderId != null && targetGoogleFolderId.isNotEmpty) ||
+        (folder.isSyncedToGoogle && (folder.deviceId?.isNotEmpty ?? false));
+    final shouldDeleteOnDrive = currentConfig.useGoogleBackend &&
+        currentConfig.googleScriptUrl.trim().isNotEmpty &&
+        hasDriveIdentifier;
+
+    if (shouldDeleteOnDrive) {
+      try {
+        final scriptUri = Uri.parse(currentConfig.googleScriptUrl.trim());
+        final payload = jsonEncode({
+          'action': 'deleteFolder',
+          'folderId': targetGoogleFolderId ?? '',
+          'deviceId': folder.deviceId ?? '',
+        });
+
+        final response = await _httpClient
+            .post(
+              scriptUri,
+              body: payload,
+              headers: {'Content-Type': 'text/plain'},
+            )
+            .timeout(const Duration(seconds: 25));
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final resJson = jsonDecode(response.body) as Map<String, dynamic>;
+          if (resJson['status'] != 'success' || resJson['action'] != 'deleteFolder') {
+            return (
+              success: false,
+              message: resJson['action'] == 'deleteFolder'
+                  ? (resJson['message'] as String? ?? 'No se pudo eliminar en Google Drive.')
+                  : 'Actualiza el script Code.js ("Nueva versión") en script.google.com para poder eliminar carpetas en Google Drive.',
+            );
+          }
+        } else {
+          return (
+            success: false,
+            message: 'Google Drive respondió con error (${response.statusCode}). Inténtalo de nuevo.',
+          );
+        }
+      } catch (e) {
+        return (
+          success: false,
+          message: 'No se pudo conectar con Google Drive para eliminar la carpeta: $e',
+        );
+      }
+    }
+
     final list = List<MemoryFolder>.from(foldersNotifier.value);
-    list.removeWhere((f) => f.id == folderId);
+    list.removeWhere(
+      (f) =>
+          f.id == folder.id ||
+          (targetGoogleFolderId != null &&
+              (f.id == targetGoogleFolderId || f.googleFolderId == targetGoogleFolderId)),
+    );
     foldersNotifier.value = list;
-    _saveFoldersToDisk();
+    await _saveFoldersToDisk();
+
+    final myIds = List<String>.from(myFolderIdsNotifier.value);
+    final removedLocal = myIds.remove(folder.id);
+    final removedDrive = targetGoogleFolderId != null && myIds.remove(targetGoogleFolderId);
+    if (removedLocal || removedDrive) {
+      myFolderIdsNotifier.value = myIds;
+      await _saveMyFoldersToDisk();
+    }
+
+    return (
+      success: true,
+      message: shouldDeleteOnDrive
+          ? 'Carpeta de ${folder.guestName} eliminada del álbum y movida a la papelera de Google Drive.'
+          : 'Carpeta de ${folder.guestName} eliminada del álbum.',
+    );
   }
 
   Future<void> resetToDemo() async {

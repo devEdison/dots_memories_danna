@@ -2,14 +2,21 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dots_memories_danna/main.dart';
 import 'package:dots_memories_danna/models/memory_folder.dart';
 import 'package:dots_memories_danna/models/memory_item.dart';
 import 'package:dots_memories_danna/services/appwrite_auth_service.dart';
 import 'package:dots_memories_danna/services/storage_service.dart';
+import 'package:dots_memories_danna/widgets/folder_card.dart';
 import 'package:dots_memories_danna/widgets/live_slideshow_dialog.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('es');
+  });
+
   final samplePngBytes = base64Decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   );
@@ -165,5 +172,79 @@ void main() {
       (drivePhoto.imageProvider as NetworkImage).url,
       'https://lh3.googleusercontent.com/d/drive_abc123=w1920',
     );
+  });
+
+  testWidgets('FolderCard shows admin delete button only when onDelete is provided', (WidgetTester tester) async {
+    bool deleted = false;
+    final folder = MemoryFolder(
+      id: 'folder_admin_test',
+      guestName: 'Invitado Test',
+      comment: '¡Felices 15!',
+      timestamp: DateTime(2026, 11, 10),
+      photos: [
+        MemoryItem(
+          id: 'p_1',
+          fileName: 'foto.png',
+          bytes: samplePngBytes,
+          timestamp: DateTime(2026, 11, 10),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 340,
+            height: 400,
+            child: FolderCard(
+              folder: folder,
+              onOpen: () {},
+              onLike: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 340,
+            height: 400,
+            child: FolderCard(
+              folder: folder,
+              onOpen: () {},
+              onLike: () {},
+              onDelete: () => deleted = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(deleted, isTrue);
+  });
+
+  test('StorageService.deleteFolder removes local folder cleanly', () async {
+    SharedPreferences.setMockInitialValues({});
+    final folder = MemoryFolder(
+      id: 'folder_admin_local_test',
+      guestName: 'Invitado Test',
+      comment: '¡Felices 15!',
+      timestamp: DateTime(2026, 11, 10),
+      photos: const [],
+    );
+    final storage = StorageService();
+    storage.foldersNotifier.value = [folder];
+    final res = await storage.deleteFolder(folder);
+    expect(res.success, isTrue);
+    expect(storage.foldersNotifier.value, isEmpty);
   });
 }

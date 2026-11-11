@@ -11,12 +11,14 @@ class FolderCard extends StatelessWidget {
   final MemoryFolder folder;
   final VoidCallback onOpen;
   final VoidCallback onLike;
+  final VoidCallback? onDelete;
 
   const FolderCard({
     super.key,
     required this.folder,
     required this.onOpen,
     required this.onLike,
+    this.onDelete,
   });
 
   String _formatTime(DateTime dt) {
@@ -121,11 +123,15 @@ class FolderCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Text(
-                              _formatTime(folder.timestamp),
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: AppTheme.mutedText,
+                            Flexible(
+                              child: Text(
+                                _formatTime(folder.timestamp),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: AppTheme.mutedText,
+                                ),
                               ),
                             ),
                             if (folder.isSyncedToGoogle) ...[
@@ -183,6 +189,32 @@ class FolderCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (onDelete != null) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: 'Eliminar carpeta',
+                      child: Material(
+                        color: const Color(0xFFFDF0F2),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: onDelete,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.pinkBorder),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: AppTheme.deepRose,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

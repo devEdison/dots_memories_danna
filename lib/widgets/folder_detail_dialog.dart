@@ -8,11 +8,13 @@ import '../theme/app_theme.dart';
 class FolderDetailDialog extends StatelessWidget {
   final MemoryFolder folder;
   final Function(int photoIndex) onPhotoTap;
+  final VoidCallback? onDeleteFolder;
 
   const FolderDetailDialog({
     super.key,
     required this.folder,
     required this.onPhotoTap,
+    this.onDeleteFolder,
   });
 
   void _openGoogleDriveUrl(String url) {
@@ -124,6 +126,20 @@ class FolderDetailDialog extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (onDeleteFolder != null) ...[
+                    Tooltip(
+                      message: 'Eliminar carpeta del álbum y Drive',
+                      child: IconButton(
+                        onPressed: onDeleteFolder,
+                        icon: const Icon(Icons.delete_outline_rounded, size: 22),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFFDECEF),
+                          foregroundColor: AppTheme.deepRose,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded, size: 24),

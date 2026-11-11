@@ -191,6 +191,121 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.of(context).pop();
           _openLightbox(folder.photos, photoIndex, folder);
         },
+        onDeleteFolder: () => _confirmAndDeleteFolder(folder, closeDetailAfter: true),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteFolder(
+    MemoryFolder folder, {
+    bool closeDetailAfter = false,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AppTheme.goldBorder, width: 1.4),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.softPinkBg,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.pinkBorder),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppTheme.deepRose, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Eliminar carpeta',
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.sageDeep,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Seguro que deseas eliminar la carpeta de "${folder.guestName}" (${folder.photos.length} archivo(s))?\n\nSe quitará del álbum y se moverá a la papelera de Google Drive.',
+          style: GoogleFonts.poppins(fontSize: 13.5, color: AppTheme.charcoal, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.poppins(color: AppTheme.mutedText, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            icon: const Icon(Icons.delete_forever_rounded, size: 18, color: Colors.white),
+            label: Text(
+              'Eliminar',
+              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.deepRose,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    BuildContext? progressDialogContext;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (progressCtx) {
+        progressDialogContext = progressCtx;
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Row(
+              children: [
+                const CircularProgressIndicator(color: AppTheme.sageDark),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Eliminando carpeta en Google Drive...',
+                    style: GoogleFonts.poppins(fontSize: 13.5, color: AppTheme.sageDeep),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    final result = await widget.storageService.deleteFolder(folder);
+
+    if (progressDialogContext != null && progressDialogContext!.mounted) {
+      Navigator.of(progressDialogContext!).pop();
+    }
+    if (!mounted) return;
+
+    if (result.success && closeDetailAfter && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: result.success ? AppTheme.sageDark : AppTheme.deepRose,
+        content: Text(
+          result.message,
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -667,6 +782,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     folder: folder,
                                     onOpen: () => _openFolderDetail(folder),
                                     onLike: () => widget.storageService.toggleLike(folder.id),
+                                    onDelete: () => _confirmAndDeleteFolder(folder),
                                   )
                                       .animate(delay: ((index % 6) * 55).ms)
                                       .fadeIn(duration: 380.ms)
