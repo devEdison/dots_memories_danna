@@ -381,3 +381,35 @@ class _AnimatedLikeButtonState extends State<AnimatedLikeButton> {
   }
 }
 
+/// Aviso elegante de copyright y autoría para el pie de página
+class QuinceCopyrightNotice extends StatelessWidget {
+  const QuinceCopyrightNotice({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '© ${DateTime.now().year} Dots Memories • Todos los derechos reservados',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            color: AppTheme.mutedText,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Desarrollado por Edison Gonzalez',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.sageDark,
+          ),
+        ),
+      ],
+    );
+  }
+}
+

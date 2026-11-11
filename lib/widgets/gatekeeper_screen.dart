@@ -128,7 +128,10 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
               ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
-                child: Container(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
@@ -441,6 +444,10 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                     .animate()
                     .fadeIn(duration: 500.ms)
                     .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0), curve: Curves.easeOutBack),
+                    const SizedBox(height: 18),
+                    const QuinceCopyrightNotice(),
+                  ],
+                ),
               ),
             ),
           ),

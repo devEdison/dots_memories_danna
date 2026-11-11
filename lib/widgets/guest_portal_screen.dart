@@ -974,19 +974,26 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                   ),
                 ),
 
-              // Pie de página con opción para Anfitrión
+              // Pie de página con opción para Anfitrión y copyright
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 20, bottom: 40),
+                  padding: const EdgeInsets.only(top: 20, bottom: 84, left: 20, right: 20),
                   child: Center(
-                    child: TextButton.icon(
-                      onPressed: _showHostLoginDialog,
-                      icon: const Icon(Icons.admin_panel_settings_outlined, size: 16),
-                      label: const Text('¿Eres el Anfitrión o Familia de Danna Alejandra? Iniciar sesión aquí'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.mutedText,
-                        textStyle: GoogleFonts.poppins(fontSize: 12),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _showHostLoginDialog,
+                          icon: const Icon(Icons.admin_panel_settings_outlined, size: 16),
+                          label: const Text('¿Eres el Anfitrión o Familia de Danna Alejandra? Iniciar sesión aquí'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.mutedText,
+                            textStyle: GoogleFonts.poppins(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const QuinceCopyrightNotice(),
+                      ],
                     ),
                   ),
                 ),

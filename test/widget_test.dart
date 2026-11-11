@@ -24,6 +24,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.textContaining('Danna'), findsWidgets);
+    expect(find.text('Desarrollado por Edison Gonzalez'), findsOneWidget);
+    expect(find.textContaining('Todos los derechos reservados'), findsOneWidget);
   });
 
   testWidgets('LiveSlideshowDialog renders empty gala stage when no photos', (WidgetTester tester) async {
