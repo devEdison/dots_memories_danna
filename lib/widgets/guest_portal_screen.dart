@@ -552,162 +552,122 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Tarjeta de Acción Rápida: Verde Salvia, Rosado & Borde Dorado
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: AppTheme.goldBorder, width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.sageGreen.withAlpha(32),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                                BoxShadow(
-                                  color: AppTheme.warmGold.withAlpha(28),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            child: isMobile
-                                ? Column(
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              gradient: const LinearGradient(
-                                                colors: [AppTheme.softPinkBg, AppTheme.goldLight],
-                                              ),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(color: AppTheme.goldBorder),
-                                            ),
-                                            child: const Text('📸', style: TextStyle(fontSize: 20)),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  myFolders.isEmpty ? 'Estado de tus recuerdos:' : 'Tus recuerdos subidos:',
-                                                  style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
-                                                ),
-                                                Text(
-                                                  myFolders.isEmpty
-                                                      ? '¡Aún no has compartido fotos!'
-                                                      : '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppTheme.sageDeep,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: QuincePrimaryButton(
-                                          onPressed: _openUploadModal,
-                                          icon: Icons.add_photo_alternate_rounded,
-                                          label: myFolders.isEmpty
-                                              ? 'Subir Mis Fotos y Videos Ahora ✨'
-                                              : 'Subir Más Fotos a Mi Carpeta 📸',
-                                          minHeight: 46,
-                                          borderRadius: 16,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 42,
-                                        child: OutlinedButton.icon(
-                                          onPressed: _openQrDialog,
-                                          icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
-                                          label: Text(
-                                            'Compartir Código QR con la Mesa 📲',
-                                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppTheme.deepRose, fontSize: 13),
-                                          ),
-                                          style: OutlinedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [AppTheme.softPinkBg, AppTheme.goldLight],
-                                          ),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: AppTheme.goldBorder),
-                                        ),
-                                        child: const Text('📸', style: TextStyle(fontSize: 22)),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                          // Tarjeta de Acción Rápida (visible cuando el invitado ya tiene recuerdos subidos)
+                          if (myFolders.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(color: AppTheme.goldBorder, width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.sageGreen.withAlpha(32),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                  BoxShadow(
+                                    color: AppTheme.warmGold.withAlpha(28),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: isMobile
+                                  ? Column(
+                                      children: [
+                                        Row(
                                           children: [
-                                            Text(
-                                              myFolders.isEmpty ? 'Estado de tus recuerdos:' : 'Tus recuerdos subidos:',
-                                              style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.mutedText),
+                                            Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                                ),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: AppTheme.goldBorder),
+                                              ),
+                                              child: const Text('📸', style: TextStyle(fontSize: 20)),
                                             ),
-                                            Text(
-                                              myFolders.isEmpty
-                                                  ? '¡Aún no has compartido fotos!'
-                                                  : '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppTheme.sageDeep,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Tus recuerdos subidos:',
+                                                    style: GoogleFonts.poppins(fontSize: 11, color: AppTheme.mutedText),
+                                                  ),
+                                                  Text(
+                                                    '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppTheme.sageDeep,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      OutlinedButton.icon(
-                                        onPressed: _openQrDialog,
-                                        icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
-                                        label: Text(
-                                          'Compartir QR 📲',
-                                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppTheme.deepRose),
+                                        const SizedBox(height: 12),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: QuincePrimaryButton(
+                                            onPressed: _openUploadModal,
+                                            icon: Icons.add_photo_alternate_rounded,
+                                            label: 'Subir Más Fotos o Videos 📸',
+                                            minHeight: 46,
+                                            borderRadius: 16,
+                                            fontSize: 13,
+                                          ),
                                         ),
-                                        style: OutlinedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [AppTheme.softPinkBg, AppTheme.goldLight],
+                                            ),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: AppTheme.goldBorder),
+                                          ),
+                                          child: const Text('📸', style: TextStyle(fontSize: 22)),
                                         ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      QuincePrimaryButton(
-                                        onPressed: _openUploadModal,
-                                        icon: Icons.add_photo_alternate_rounded,
-                                        label: myFolders.isEmpty
-                                            ? 'Subir Mis Fotos y Videos Ahora ✨'
-                                            : 'Subir Más Fotos a Mi Carpeta 📸',
-                                        borderRadius: 16,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                        fontSize: 14,
-                                      ),
-                                    ],
-                                  ),
-                          ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Tus recuerdos subidos:',
+                                                style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.mutedText),
+                                              ),
+                                              Text(
+                                                '$totalPhotos fotos • $totalVideos videos (${myFolders.length} dedicatorias)',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.sageDeep,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        QuincePrimaryButton(
+                                          onPressed: _openUploadModal,
+                                          icon: Icons.add_photo_alternate_rounded,
+                                          label: 'Subir Más Fotos o Videos 📸',
+                                          borderRadius: 16,
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                          fontSize: 14,
+                                        ),
+                                      ],
+                                    ),
+                            ),
                         ],
                       ),
                     ),
@@ -786,26 +746,7 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                             fontSize: 15,
                           ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: _openQrDialog,
-                            icon: const Icon(Icons.qr_code_2_rounded, color: AppTheme.deepRose, size: 18),
-                            label: Text(
-                              'Mostrar o Compartir Código QR con la mesa 📲',
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: AppTheme.deepRose,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: const BorderSide(color: AppTheme.pinkBorder, width: 1.5),
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           TextButton.icon(
                             onPressed: _showLinkNameDialog,
                             icon: const Icon(Icons.history_rounded, size: 16),
@@ -1081,24 +1022,6 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                 ),
               ),
             ],
-          ),
-          floatingActionButton: RepaintBoundary(
-            child: FloatingActionButton.extended(
-              onPressed: _openUploadModal,
-              backgroundColor: AppTheme.sageDark,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-                side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
-              ),
-              icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
-              label: Text(
-                'Subir Más Fotos y Videos ✨',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
-            )
-                .animate(onPlay: (c) => c.repeat())
-                .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
           ),
         );
       },

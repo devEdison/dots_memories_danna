@@ -228,14 +228,31 @@ class _FolderDetailDialogState extends State<FolderDetailDialog> {
                                   ),
                                 ],
                               ),
-                              TextButton.icon(
-                                onPressed: _downloadDedication,
-                                icon: const Icon(Icons.download_rounded, size: 16),
-                                label: const Text('Descargar Nota'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.sageDark,
-                                  textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (folder.folderUrl != null && folder.folderUrl!.isNotEmpty) ...[
+                                    TextButton.icon(
+                                      onPressed: () => _openGoogleDriveUrl(folder.folderUrl!),
+                                      icon: const Icon(Icons.folder_shared_rounded, size: 15),
+                                      label: const Text('Ver en Drive ↗'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppTheme.sageDark,
+                                        textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  TextButton.icon(
+                                    onPressed: _downloadDedication,
+                                    icon: const Icon(Icons.download_rounded, size: 15),
+                                    label: const Text('Descargar Nota'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.sageDark,
+                                      textStyle: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -255,107 +272,7 @@ class _FolderDetailDialogState extends State<FolderDetailDialog> {
                       ),
                     ),
 
-                    if (folder.folderUrl != null && folder.folderUrl!.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      InkWell(
-                        onTap: () => _openGoogleDriveUrl(folder.folderUrl!),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.sageLight,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.sageBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.cloud_done_rounded, color: AppTheme.sageDark, size: 22),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Carpeta respaldada en Google Drive / Fotos',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.sageDeep,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Ruta: Mi Unidad > 15 Años Danna - Fotos de Invitados > ${folder.guestName}',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.sageDark,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Toca aquí para abrir la subcarpeta original en Google Drive',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: AppTheme.mutedText,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.open_in_new_rounded, color: AppTheme.sageDark, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 12),
-
-                    // Botón directo al Álbum oficial de Google Fotos de Danna
-                    InkWell(
-                      onTap: () => DownloadHelper.openUrl(
-                        'https://photos.google.com/album/AF1QipOhge4RLXPuUJ4UZ0AYaRKKtLha7dIAWfUkKmJm',
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.softPinkBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.pinkBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.photo_library_rounded, color: AppTheme.dustyPink, size: 22),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Álbum Oficial en Google Fotos de Danna',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.sageDeep,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Abrir álbum en Google Fotos para ver la colección completa',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      color: AppTheme.mutedText,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.open_in_new_rounded, color: AppTheme.dustyPink, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // TÍTULO DE LA GALERÍA
                     SizedBox(
