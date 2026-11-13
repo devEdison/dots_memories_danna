@@ -133,6 +133,7 @@ class _UploadModalState extends State<UploadModal> {
                 bytes: optimized.bytes,
                 size: optimized.bytes.length,
                 mimeType: optimized.mimeType,
+                isOptimized: true,
               ),
             );
           }

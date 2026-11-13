@@ -394,88 +394,92 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Corona animada de 15 Años con brillos dorados y rosados
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('✨', style: TextStyle(fontSize: 18))
-                                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                                  .fade(begin: 0.3, end: 1.0, duration: 1500.ms)
-                                  .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFFFFFFFF),
-                                      Color(0xFFFDF2F4),
-                                      Color(0xFFFCF7E3),
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppTheme.warmGold, width: 2.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.warmGold.withAlpha(75),
-                                      blurRadius: 18,
-                                      spreadRadius: 1,
-                                    ),
-                                    BoxShadow(
-                                      color: AppTheme.blushPink.withAlpha(50),
-                                      blurRadius: 14,
-                                    ),
-                                  ],
-                                ),
-                                child: const Text('👑', style: TextStyle(fontSize: 36)),
-                              )
-                                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                                  .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.10, 1.10), duration: 2000.ms)
-                                  .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
-                              const SizedBox(width: 12),
-                              const Text('✨', style: TextStyle(fontSize: 18))
-                                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                                  .fade(begin: 1.0, end: 0.3, duration: 1500.ms)
-                                  .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.8, 0.8)),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Título con efecto de Brillo Dorado y Rosado
-                          RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
+                          // Corona animada de 15 Años con brillos dorados y rosados (aislado en RepaintBoundary)
+                          RepaintBoundary(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                TextSpan(
-                                  text: 'Mis 15 Años • ',
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: isMobile ? 24 : 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.sageDeep,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Danna Alejandra 🌸',
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: isMobile ? 24 : 32,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.deepRose,
-                                    shadows: [
-                                      Shadow(
-                                        color: AppTheme.warmGold.withAlpha(80),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
+                                const Text('✨', style: TextStyle(fontSize: 18))
+                                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                                    .fade(begin: 0.3, end: 1.0, duration: 1500.ms)
+                                    .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFFFFFFFF),
+                                        Color(0xFFFDF2F4),
+                                        Color(0xFFFCF7E3),
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppTheme.warmGold, width: 2.0),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.warmGold.withAlpha(75),
+                                        blurRadius: 18,
+                                        spreadRadius: 1,
+                                      ),
+                                      BoxShadow(
+                                        color: AppTheme.blushPink.withAlpha(50),
+                                        blurRadius: 14,
                                       ),
                                     ],
                                   ),
-                                ),
+                                  child: const Text('👑', style: TextStyle(fontSize: 36)),
+                                )
+                                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                                    .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.10, 1.10), duration: 2000.ms)
+                                    .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
+                                const SizedBox(width: 12),
+                                const Text('✨', style: TextStyle(fontSize: 18))
+                                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                                    .fade(begin: 1.0, end: 0.3, duration: 1500.ms)
+                                    .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.8, 0.8)),
                               ],
                             ),
-                          )
-                              .animate(onPlay: (c) => c.repeat(reverse: true))
-                              .shimmer(duration: 2600.ms, color: AppTheme.goldLight),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Título con efecto de Brillo Dorado y Rosado (aislado en RepaintBoundary)
+                          RepaintBoundary(
+                            child: RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Mis 15 Años • ',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: isMobile ? 24 : 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.sageDeep,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'Danna Alejandra 🌸',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: isMobile ? 24 : 32,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.deepRose,
+                                      shadows: [
+                                        Shadow(
+                                          color: AppTheme.warmGold.withAlpha(80),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                                .animate(onPlay: (c) => c.repeat(reverse: true))
+                                .shimmer(duration: 2600.ms, color: AppTheme.goldLight),
+                          ),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -486,6 +490,44 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
                               const SizedBox(width: 8),
                               Container(height: 1.2, width: 32, color: AppTheme.goldBorder),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Insignia oficial de Fecha del Evento
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AppTheme.goldBorder, width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.warmGold.withAlpha(30),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 14,
+                                  color: AppTheme.sageDark,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '28 de Noviembre de 2026',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                    color: AppTheme.sageDark,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -1040,22 +1082,24 @@ class _GuestPortalScreenState extends State<GuestPortalScreen> {
               ),
             ],
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: _openUploadModal,
-            backgroundColor: AppTheme.sageDark,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-              side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
-            ),
-            icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
-            label: Text(
-              'Subir Más Fotos y Videos ✨',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-            ),
-          )
-              .animate(onPlay: (c) => c.repeat())
-              .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
+          floatingActionButton: RepaintBoundary(
+            child: FloatingActionButton.extended(
+              onPressed: _openUploadModal,
+              backgroundColor: AppTheme.sageDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+                side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
+              ),
+              icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
+              label: Text(
+                'Subir Más Fotos y Videos ✨',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            )
+                .animate(onPlay: (c) => c.repeat())
+                .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
+          ),
         );
       },
     );

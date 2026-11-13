@@ -87,6 +87,14 @@ class _QuinceAmbientBackdropState extends State<QuinceAmbientBackdrop>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < 768;
+    // En dispositivos móviles limitamos las partículas concurrentes para eliminar calentamiento y sobrecarga de GPU
+    const maxParticlesMobile = 10;
+    final activeParticles = isMobile && _particles.length > maxParticlesMobile
+        ? _particles.sublist(0, maxParticlesMobile)
+        : _particles;
+
     return IgnorePointer(
       child: RepaintBoundary(
         child: AnimatedBuilder(
@@ -95,7 +103,7 @@ class _QuinceAmbientBackdropState extends State<QuinceAmbientBackdrop>
             return CustomPaint(
               painter: _AmbientPainter(
                 progress: _controller.value,
-                particles: _particles,
+                particles: activeParticles,
                 opacityMultiplier: widget.opacityMultiplier,
               ),
               size: Size.infinite,

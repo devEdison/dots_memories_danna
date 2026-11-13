@@ -72,7 +72,11 @@ class MemoryItem {
     if (_cachedImageProvider != null) return _cachedImageProvider!;
     final localBytes = _resolveLocalBytes();
     if (localBytes != null) {
-      _cachedImageProvider = MemoryImage(localBytes);
+      _cachedImageProvider = ResizeImage.resizeIfNeeded(
+        1920,
+        null,
+        MemoryImage(localBytes),
+      );
     } else if (remoteUrl != null && remoteUrl!.isNotEmpty) {
       _cachedImageProvider = NetworkImage(
         _sizedRemoteUrl(remoteUrl!, 'w1920'),
@@ -84,24 +88,22 @@ class MemoryItem {
     return _cachedImageProvider!;
   }
 
-  /// Retorna y cachea una versión ligera para miniaturas (evita saturar Drive y decodificar 4K)
+  /// Retorna y cachea una versión ligera para miniaturas (evita saturar GPU y decodificar 4K)
   ImageProvider get thumbnailProvider {
     if (_cachedThumbnailProvider != null) return _cachedThumbnailProvider!;
     final localBytes = _resolveLocalBytes();
     if (localBytes != null) {
       _cachedThumbnailProvider = ResizeImage.resizeIfNeeded(
-        480,
+        360,
         null,
         MemoryImage(localBytes),
       );
     } else if (remoteUrl != null && remoteUrl!.isNotEmpty) {
       final thumbUrl = _sizedRemoteUrl(remoteUrl!, 'w600');
-      _cachedThumbnailProvider = thumbUrl == _sizedRemoteUrl(remoteUrl!, 'w1920')
-          ? imageProvider
-          : NetworkImage(
-              thumbUrl,
-              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-            );
+      _cachedThumbnailProvider = NetworkImage(
+        thumbUrl,
+        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+      );
     } else {
       _cachedThumbnailProvider = imageProvider;
     }

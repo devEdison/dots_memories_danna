@@ -164,6 +164,12 @@ class WebHelperImpl extends WebHelper {
       ctx.fillRect(0, 0, targetW, targetH);
       ctx.drawImage(bitmap, 0, 0, targetW, targetH);
 
+      // Liberar inmediatamente el bitmap de memoria antes de comprimir a Blob
+      try {
+        bitmap.close();
+        bitmap = null;
+      } catch (_) {}
+
       final completer = Completer<web.Blob?>();
       canvas.toBlob(
         ((web.Blob? outBlob) {

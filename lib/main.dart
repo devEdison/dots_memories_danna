@@ -514,6 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onGoogleDrivePressed: () => DownloadHelper.openUrl(widget.storageService.config.googleDriveFolderUrl),
                           isSyncing: isSyncing,
                           onRefreshPressed: _handleManualSync,
+                          eventDate: widget.storageService.config.eventDate,
                         );
                       },
                     ),
@@ -1072,23 +1073,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: _onUploadAttempt,
-                backgroundColor: AppTheme.sageDark,
-                foregroundColor: Colors.white,
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
-                ),
-                icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
-                label: Text(
-                  'Subir Fotos y Videos ✨',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                ),
-              )
-                  .animate(onPlay: (c) => c.repeat())
-                  .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
+              floatingActionButton: RepaintBoundary(
+                child: FloatingActionButton.extended(
+                  onPressed: _onUploadAttempt,
+                  backgroundColor: AppTheme.sageDark,
+                  foregroundColor: Colors.white,
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    side: const BorderSide(color: AppTheme.goldBorder, width: 1.5),
+                  ),
+                  icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.goldLight),
+                  label: Text(
+                    'Subir Fotos y Videos ✨',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                )
+                    .animate(onPlay: (c) => c.repeat())
+                    .shimmer(delay: 2800.ms, duration: 1400.ms, color: AppTheme.goldLight.withAlpha(110)),
+              ),
             );
           },
         );

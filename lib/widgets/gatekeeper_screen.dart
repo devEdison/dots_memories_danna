@@ -164,84 +164,88 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                         ),
                         child: Column(
                           children: [
-                            // Corona animada con halo Dorado, Rosado y estrellas
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('✨', style: TextStyle(fontSize: 18))
-                                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                                    .fade(begin: 0.35, end: 1.0, duration: 1400.ms)
-                                    .scale(begin: const Offset(0.85, 0.85), end: const Offset(1.2, 1.2)),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFFFFFFFF),
-                                        Color(0xFFFDF2F4),
-                                        Color(0xFFFCF7E3),
-                                      ],
-                                    ),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: AppTheme.warmGold, width: 2.2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.warmGold.withAlpha(80),
-                                        blurRadius: 20,
-                                        spreadRadius: 1,
-                                      ),
-                                      BoxShadow(
-                                        color: AppTheme.blushPink.withAlpha(55),
-                                        blurRadius: 16,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Text('👑', style: TextStyle(fontSize: 34)),
-                                )
-                                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                                    .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.09, 1.09), duration: 2200.ms)
-                                    .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
-                                const SizedBox(width: 12),
-                                const Text('✨', style: TextStyle(fontSize: 18))
-                                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                                    .fade(begin: 1.0, end: 0.35, duration: 1400.ms)
-                                    .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.85, 0.85)),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Título de Danna con efecto Shimmer Dorado y Rosado
-                            RichText(
-                              textAlign: TextAlign.center,
-                              text: TextSpan(
+                            // Corona animada con halo Dorado, Rosado y estrellas (aislado en RepaintBoundary)
+                            RepaintBoundary(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  TextSpan(
-                                    text: 'Mis 15 Años • ',
-                                    style: GoogleFonts.playfairDisplay(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.sageDeep,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: 'Danna Alejandra 🌸',
-                                    style: GoogleFonts.playfairDisplay(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.deepRose,
-                                      shadows: [
-                                        Shadow(
-                                          color: AppTheme.warmGold.withAlpha(85),
-                                          blurRadius: 7,
-                                          offset: const Offset(0, 2),
+                                  const Text('✨', style: TextStyle(fontSize: 18))
+                                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                                      .fade(begin: 0.35, end: 1.0, duration: 1400.ms)
+                                      .scale(begin: const Offset(0.85, 0.85), end: const Offset(1.2, 1.2)),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFFFFFFFF),
+                                          Color(0xFFFDF2F4),
+                                          Color(0xFFFCF7E3),
+                                        ],
+                                      ),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppTheme.warmGold, width: 2.2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.warmGold.withAlpha(80),
+                                          blurRadius: 20,
+                                          spreadRadius: 1,
+                                        ),
+                                        BoxShadow(
+                                          color: AppTheme.blushPink.withAlpha(55),
+                                          blurRadius: 16,
                                         ),
                                       ],
                                     ),
-                                  ),
+                                    child: const Text('👑', style: TextStyle(fontSize: 34)),
+                                  )
+                                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                                      .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.09, 1.09), duration: 2200.ms)
+                                      .shimmer(duration: 2400.ms, color: AppTheme.goldLight),
+                                  const SizedBox(width: 12),
+                                  const Text('✨', style: TextStyle(fontSize: 18))
+                                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                                      .fade(begin: 1.0, end: 0.35, duration: 1400.ms)
+                                      .scale(begin: const Offset(1.2, 1.2), end: const Offset(0.85, 0.85)),
                                 ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Título de Danna con efecto Shimmer Dorado y Rosado (aislado en RepaintBoundary)
+                            RepaintBoundary(
+                              child: RichText(
+                                textAlign: TextAlign.center,
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Mis 15 Años • ',
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.sageDeep,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'Danna Alejandra 🌸',
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.deepRose,
+                                        shadows: [
+                                          Shadow(
+                                            color: AppTheme.warmGold.withAlpha(85),
+                                            blurRadius: 7,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                                 .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -256,6 +260,44 @@ class _GatekeeperScreenState extends State<GatekeeperScreen> with SingleTickerPr
                                 const SizedBox(width: 8),
                                 Container(height: 1.2, width: 32, color: AppTheme.goldBorder),
                               ],
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Insignia oficial de Fecha del Evento
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: AppTheme.goldBorder, width: 1.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.warmGold.withAlpha(30),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_month_rounded,
+                                    size: 14,
+                                    color: AppTheme.sageDark,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '28 de Noviembre de 2026',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.2,
+                                      color: AppTheme.sageDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(

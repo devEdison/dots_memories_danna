@@ -14,12 +14,14 @@ class SelectedFile {
   final Uint8List bytes;
   final int size;
   final String mimeType;
+  final bool isOptimized;
 
   SelectedFile({
     required this.name,
     required this.bytes,
     required this.size,
     this.mimeType = 'image/jpeg',
+    this.isOptimized = false,
   });
 
   bool get isVideo =>
@@ -334,7 +336,7 @@ class StorageService {
     for (int i = 0; i < safeInputFiles.length; i++) {
       final f = safeInputFiles[i];
       final sanitizedName = f.name.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_').trim();
-      if (!f.isVideo && f.bytes.length > 320 * 1024) {
+      if (!f.isVideo && !f.isOptimized && f.bytes.length > 320 * 1024) {
         final optimized = await DownloadHelper.optimizeImageForUpload(
           bytes: f.bytes,
           fileName: sanitizedName,
@@ -346,6 +348,7 @@ class StorageService {
             bytes: optimized.bytes,
             size: optimized.bytes.length,
             mimeType: optimized.mimeType,
+            isOptimized: true,
           ),
         );
       } else {
@@ -355,6 +358,7 @@ class StorageService {
             bytes: f.bytes,
             size: f.size,
             mimeType: f.mimeType,
+            isOptimized: f.isOptimized,
           ),
         );
       }
@@ -403,12 +407,12 @@ class StorageService {
         // Tamaño exacto Base64 calculado sin asignar cadenas en memoria por adelantado
         int estimatedBase64Len(int byteLen) => ((byteLen + 2) ~/ 3) * 4;
 
-        // Lotes compactos (~4 MB Base64 o máx. 4 archivos) para evitar saturar Apps Script
+        // Lotes compactos (~2.5 MB Base64 o máx. 2 archivos) para envío ultra-ligero que evita calentamiento de CPU y saturación de Apps Script
         final chunks = <List<int>>[];
         var currentChunk = <int>[];
         var currentChunkBase64Chars = 0;
-        const maxChunkBase64Chars = 4 * 1024 * 1024;
-        const maxFilesPerChunk = 4;
+        const maxChunkBase64Chars = 2500 * 1024;
+        const maxFilesPerChunk = 2;
 
         for (int i = 0; i < processedFiles.length; i++) {
           final b64Len = estimatedBase64Len(processedFiles[i].bytes.length);
